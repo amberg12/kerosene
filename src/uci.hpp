@@ -22,6 +22,7 @@
 
 namespace kerosene {
 
+
 class Uci {
 public:
     auto loop() -> void;

@@ -15,18 +15,43 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <memory>
 
+#include <iostream>
+#include <print>
+#include <sstream>
+
+#include "common.hpp"
 #include "uci.hpp"
 
-using namespace kerosene;
+namespace kerosene {
 
-int main(int argc, char* argv[]) {
-    auto uci = std::make_unique<Uci>();
 
-    if (argc > 1) {
-        uci->cli(argc, argv);
-    } else {
-        uci->loop();
+auto Uci::loop() -> void {
+    std::string input;
+    while (std::getline(std::cin, input)) {
+        execute_command(input);
     }
 }
+
+auto Uci::cli(const int argc, char* argv[]) -> void {
+    for (usize i = 1; i < argc; ++i) {
+        execute_command(argv[i]);
+    }
+}
+
+auto Uci::execute_command(const std::string& line) -> void {
+    std::istringstream is{line};
+
+    std::string command;
+    is >> command;
+
+    if (command == "uci") {
+        std::println("id name Kerosene");
+        std::println("id author Amber Goulding");
+        std::println("uciok");
+    } else if (command == "quit") {
+        std::exit(0);
+    }
+}
+
+}  // kerosene

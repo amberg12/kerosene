@@ -15,18 +15,20 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <memory>
 
-#include "uci.hpp"
+#pragma once
 
-using namespace kerosene;
+#include <string>
 
-int main(int argc, char* argv[]) {
-    auto uci = std::make_unique<Uci>();
+namespace kerosene {
 
-    if (argc > 1) {
-        uci->cli(argc, argv);
-    } else {
-        uci->loop();
-    }
-}
+class Uci {
+public:
+    auto loop() -> void;
+    auto cli(int argc, char* argv[]) -> void;
+
+private:
+    auto execute_command(const std::string&) -> void;
+};
+
+}  // kerosene

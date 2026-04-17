@@ -4,4 +4,7 @@ project(Kerosene)
 set(CMAKE_CXX_STANDARD 23)
 
 add_executable(Kerosene
-        src/main.cpp)
+        src/main.cpp
+        src/common.hpp
+        src/uci.cpp
+        src/uci.hpp)

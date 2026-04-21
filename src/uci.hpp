@@ -18,9 +18,13 @@
 
 #pragma once
 
+#include "position.hpp"
+
+
 #include <string>
 
 namespace kerosene {
+
 
 class Uci {
 public:
@@ -29,6 +33,11 @@ public:
 
 private:
     auto execute_command(const std::string&) -> void;
+
+    auto handle_position(std::istringstream& is) -> void;
+    auto handle_d(std::istringstream& is) const -> void;
+
+    Position m_position{Position::parse(kStartPos)};
 };
 
 }  // kerosene

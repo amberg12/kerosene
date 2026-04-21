@@ -23,6 +23,8 @@
 #include "common.hpp"
 #include "uci.hpp"
 
+#include "move.hpp"
+
 namespace kerosene {
 
 
@@ -51,7 +53,47 @@ auto Uci::execute_command(const std::string& line) -> void {
         std::println("uciok");
     } else if (command == "quit") {
         std::exit(0);
+    } else if (command == "position") {
+        handle_position(is);
+    } else if (command == "d") {
+        handle_d(is);
     }
+}
+
+auto Uci::handle_position(std::istringstream& is) -> void {
+    std::string token, fen;
+
+    while (is >> token) {
+        if (token == "fen") {
+            while (is >> token) {
+                if (token == "moves") {
+                    break;
+                }
+
+                fen += token + " ";
+            }
+
+            m_position = Position::parse(fen);
+        } else if (token == "startpos") {
+            m_position = Position::parse(kStartPos);
+        } else if (token == "kiwipete") {
+            m_position = Position::parse(kKiwiPete);
+        }
+
+        while (is >> token) {
+            if (token == "moves") {
+                continue;
+            }
+
+            Move move = Move::parse(token, m_position);
+            m_position = Position{m_position, move};
+        }
+    }
+}
+
+auto Uci::handle_d(std::istringstream& is) const -> void {
+    std::println("{}", m_position.to_string());
+    std::println("Castling Rights: {}", m_position.castling_rights().to_string());
 }
 
 }  // kerosene

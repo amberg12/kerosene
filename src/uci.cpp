@@ -23,6 +23,8 @@
 #include "common.hpp"
 #include "uci.hpp"
 
+#include "move.hpp"
+
 namespace kerosene {
 
 
@@ -76,6 +78,15 @@ auto Uci::handle_position(std::istringstream& is) -> void {
             m_position = Position::parse(kStartPos);
         } else if (token == "kiwipete") {
             m_position = Position::parse(kKiwiPete);
+        }
+
+        while (is >> token) {
+            if (token == "moves") {
+                continue;
+            }
+
+            Move move = Move::parse(token, m_position);
+            m_position = Position{m_position, move};
         }
     }
 }

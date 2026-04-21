@@ -17,7 +17,13 @@
  */
 
 #pragma once
+#include <optional>
+#include <string>
+#include <string_view>
+
 #include "common.hpp"
+
+#include <utility>
 
 namespace kerosene {
 
@@ -28,7 +34,7 @@ constexpr std::string_view kKiwiPete =
 class Color {
 public:
     enum Underlying : u8 {
-        kWhite,
+        kWhite = 0,
         kBlack,
     };
 
@@ -48,6 +54,35 @@ public:
         }
 
         return kBlack;
+    }
+
+    friend constexpr auto operator~(Color color) -> Color;
+
+private:
+    Underlying m_raw{};
+};
+
+constexpr auto operator~(Color color) -> Color {
+    return static_cast<Color::Underlying>(std::to_underlying(color.m_raw) ^ 1);
+}
+
+class Direction {
+public:
+    enum Underlying {
+        kNorth = 8,
+        kSouth = -8,
+    };
+
+    /* implicit */ Direction(Underlying raw) :
+        m_raw(raw) {
+    }
+
+    /* implicit */ constexpr operator usize() {
+        return static_cast<usize>(m_raw);
+    }
+
+    static constexpr auto pawn_direction(Color color) -> Direction {
+        return color == Color::kWhite ? kNorth : kSouth;
     }
 
 private:
@@ -72,6 +107,10 @@ public:
 
     /* implicit */ constexpr Square(Underlying raw) :
         m_raw(raw) {
+    }
+
+    explicit constexpr Square(usize idx) :
+        m_raw(static_cast<Underlying>(idx)) {
     }
 
     constexpr Square(u8 file, u8 rank) :
@@ -116,9 +155,15 @@ public:
         return Square(file, rank);
     }
 
+    friend constexpr auto operator+(Square square, Direction direction) -> Square;
+
 private:
     Underlying m_raw = kInvalid;
 };
+
+auto constexpr operator+(Square square, Direction direction) -> Square {
+    return Square{static_cast<usize>(square) + static_cast<usize>(direction)};
+}
 
 class PieceType {
 public:
@@ -134,6 +179,40 @@ public:
 
     /* implicit */ PieceType(Underlying raw) :
         m_raw(raw) {
+    }
+
+    explicit PieceType(usize raw) :
+        m_raw(static_cast<Underlying>(raw)) {
+    }
+
+    /* implicit */ constexpr operator usize() const {
+        return m_raw;
+    }
+
+    static constexpr auto parse(char c) -> PieceType {
+        switch (c) {
+
+        case 'P':
+        case 'p':
+            return kPawn;
+        case 'N':
+        case 'n':
+            return kKnight;
+        case 'B':
+        case 'b':
+            return kBishop;
+        case 'R':
+        case 'r':
+            return kRook;
+        case 'Q':
+        case 'q':
+            return kQueen;
+        case 'K':
+        case 'k':
+            return kKing;
+        default:
+            return kEmpty;
+        }
     }
 
 private:
@@ -161,6 +240,15 @@ public:
     };
 
     Piece() = default;
+
+    Piece(Color color, PieceType piece_type) {
+        using U = std::underlying_type_t<Underlying>;
+
+        U type_bits  = piece_type;
+        U color_bits = color == Color::kWhite ? 0 : 0b1000;
+
+        m_raw = static_cast<Underlying>(type_bits | color_bits);
+    }
 
     /* implicit */ Piece(Underlying raw) :
         m_raw(raw) {
@@ -209,24 +297,40 @@ public:
 
     [[nodiscard]] auto to_string() const -> std::string {
         switch (m_raw) {
-        case kWPawn:   return "P";
-        case kWKnight: return "N";
-        case kWBishop: return "B";
-        case kWRook:   return "R";
-        case kWQueen:  return "Q";
-        case kWKing:   return "K";
+        case kWPawn:
+            return "P";
+        case kWKnight:
+            return "N";
+        case kWBishop:
+            return "B";
+        case kWRook:
+            return "R";
+        case kWQueen:
+            return "Q";
+        case kWKing:
+            return "K";
 
-        case kBPawn:   return "p";
-        case kBKnight: return "n";
-        case kBBishop: return "b";
-        case kBRook:   return "r";
-        case kBQueen:  return "q";
-        case kBKing:   return "k";
+        case kBPawn:
+            return "p";
+        case kBKnight:
+            return "n";
+        case kBBishop:
+            return "b";
+        case kBRook:
+            return "r";
+        case kBQueen:
+            return "q";
+        case kBKing:
+            return "k";
 
         case kEmpty:
         default:
             return " ";
         }
+    }
+
+    [[nodiscard]] auto empty() const -> bool {
+        return m_raw == kEmpty;
     }
 
 private:

@@ -17,6 +17,9 @@
  */
 
 #pragma once
+#include "move.hpp"
+
+
 #include <array>
 #include <string_view>
 
@@ -45,21 +48,31 @@ public:
     enum Underlying : u8 {
         kWhiteKSide = 0b0001,
         kWhiteQSide = 0b0010,
+        kWhite      = kWhiteKSide | kWhiteQSide,
         kBlackKSide = 0b0100,
         kBlackQSide = 0b1000,
+        kBlack      = kBlackKSide | kBlackQSide,
     };
 
-    static constexpr auto none() {
+    /* implicit */ CastlingRights(Underlying raw) : m_raw(raw) {}
+
+    /* implicit */ operator Underlying() const {
+        return static_cast<Underlying>(m_raw);
+    }
+
+    static constexpr auto none() -> CastlingRights {
         return CastlingRights{static_cast<Underlying>(0)};
     }
 
-    constexpr CastlingRights(Underlying raw) : m_raw{raw} {};
+    static constexpr auto from_color(Color color) -> CastlingRights {
+        return color == Color::kWhite ? kWhite : kBlack;
+    }
 
-    constexpr void add_casting_rights(Underlying castling_rights) {
+    constexpr void add_casting_rights(CastlingRights castling_rights) {
         m_raw |= castling_rights;
     }
 
-    constexpr void del_castling_rights(Underlying castling_rights) {
+    constexpr void del_castling_rights(CastlingRights castling_rights) {
         m_raw &= ~castling_rights;
     }
 
@@ -91,6 +104,8 @@ private:
 
 class Position {
 public:
+    Position(const Position& parent, Move move);
+
     static auto parse(std::string_view fen) -> Position;
 
     [[nodiscard]] auto tile_at(Square at) const -> Piece;
@@ -98,13 +113,17 @@ public:
     [[nodiscard]] auto to_string() const -> std::string;
 
     [[nodiscard]] auto castling_rights() const -> const CastlingRights&;
+    [[nodiscard]] auto en_passant() const -> Square;
 
 private:
     Position() = default;
 
-    auto add_tile(Square at, Piece to) -> void;
-    auto mut_tile(Square at, Piece to) -> void;
-    auto del_tile(Square at) -> void;
+    auto make_move(Move move) -> void;
+
+    auto add_piece(Square at, Piece to) -> void;
+    auto move_piece(Square src, Square dst) -> void;
+    auto delete_piece(Square at) -> void;
+    auto mutate_piece(Square at, PieceType to) -> void;
 
     Mailbox m_mailbox{};
 

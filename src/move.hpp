@@ -51,7 +51,7 @@ public:
 
     static constexpr auto create_castling(Square src, Square dst) -> Move {
         Move out{src, dst};
-        out.m_raw = kCastlingMask;
+        out.m_raw |= kCastlingMask;
         return out;
     }
 
@@ -89,6 +89,32 @@ public:
         u16 promote_to_idx = (m_raw & kPromoteToMask) >> 12;
 
         return PieceType{static_cast<usize>(PieceType::kKnight) + promote_to_idx};
+    }
+
+    [[nodiscard]] auto to_string() const -> std::string {
+        std::string out;
+        out += src().to_string();
+        out += dst().to_string();
+
+        if (special_type() == kPromotion) {
+            switch (promotes_to()) {
+            case PieceType::kKnight:
+                out += "n";
+                break;
+            case PieceType::kBishop:
+                out += "b";
+                break;
+            case PieceType::kRook:
+                out += "r";
+                break;
+            case PieceType::kQueen:
+                out += "q";
+                break;
+            default:;
+            }
+        }
+
+        return out;
     }
 
     [[nodiscard]] static auto parse(const std::string& move, const Position& context) -> Move;

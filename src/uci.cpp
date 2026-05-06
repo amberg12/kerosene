@@ -24,6 +24,7 @@
 #include "uci.hpp"
 
 #include "move.hpp"
+#include "move_generation.hpp"
 
 namespace kerosene {
 
@@ -57,6 +58,8 @@ auto Uci::execute_command(const std::string& line) -> void {
         handle_position(is);
     } else if (command == "d") {
         handle_d(is);
+    } else if (command == "perft") {
+        handle_perft(is);
     }
 }
 
@@ -92,8 +95,16 @@ auto Uci::handle_position(std::istringstream& is) -> void {
 }
 
 auto Uci::handle_d(std::istringstream& is) const -> void {
+    std::println("handling d");
     std::println("{}", m_position.to_string());
     std::println("Castling Rights: {}", m_position.castling_rights().to_string());
+}
+
+auto Uci::handle_perft(std::istringstream& is) const -> void {
+    i32 depth;
+    is >> depth;
+    u64 total_nodes = perft(m_position, depth);
+    std::println("Total nodes: {}", total_nodes);
 }
 
 }  // kerosene

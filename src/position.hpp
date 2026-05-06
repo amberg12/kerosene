@@ -17,30 +17,207 @@
  */
 
 #pragma once
-#include "move.hpp"
-
 
 #include <array>
 #include <string_view>
 
+#include "bit_board.hpp"
+#include "move.hpp"
 #include "types.hpp"
+#include "util/bits.hpp"
 
 namespace kerosene {
 
-class alignas(64) Mailbox {
+class PieceId {
 public:
-    Mailbox() = default;
+    explicit constexpr PieceId() = default;
 
-    constexpr auto operator[](Square at) -> Piece& {
-        return m_mailbox[at];
+    explicit constexpr PieceId(u8 raw) :
+        m_raw(raw) {
     }
 
-    constexpr auto operator[](Square at) const -> const Piece& {
-        return m_mailbox[at];
+    static constexpr auto king() -> PieceId {
+        return PieceId{0};
+    }
+
+    explicit operator usize() const {
+        return m_raw;
+    }
+
+    friend constexpr auto operator==(const PieceId&, const PieceId&) -> bool = default;
+
+private:
+    friend class PieceMask;
+
+    [[nodiscard]] constexpr auto to_bit_position() const -> u16 {
+        return 1 << m_raw;
+    }
+
+    u8 m_raw{0x10};
+};
+
+static_assert(sizeof(PieceId) == sizeof(u8));
+
+class PieceMask {
+public:
+    using Iterator = BitIterator<PieceId, u16>;
+
+    static constexpr usize kNb = 16;
+
+    constexpr PieceMask() = default;
+
+    explicit constexpr PieceMask(u16 raw) :
+        m_raw(raw) {
+    }
+
+    constexpr auto set_id(PieceId id) -> void {
+        m_raw |= id.to_bit_position();
+    }
+
+    constexpr auto unset_id(PieceId id) -> void {
+        m_raw &= ~id.to_bit_position();
+    }
+
+    [[nodiscard]] constexpr auto has_id(PieceId id) const -> bool {
+        return m_raw & 1 << static_cast<usize>(id);
+    }
+
+    [[nodiscard]] constexpr auto popcount() const -> i32 {
+        return std::popcount(m_raw);
+    }
+
+    friend constexpr auto operator~(const PieceMask piece_mask) -> PieceMask {
+        return PieceMask{static_cast<u16>(~piece_mask.m_raw)};
+    }
+
+    constexpr auto operator==(const PieceMask&) const -> bool = default;
+
+    [[nodiscard]] auto begin() const -> Iterator {
+        return Iterator{m_raw};
+    }
+
+    [[nodiscard]] static auto end() -> Iterator {
+        return Iterator{0};
     }
 
 private:
-    std::array<Piece, 64> m_mailbox;
+    u16 m_raw{0};
+};
+
+class Tile {
+    static constexpr u8 kEmpty     = 0b0000'0000;
+    static constexpr u8 kPieceMask = 0b0000'1111;
+    static constexpr u8 kIdMask    = 0b1111'0000;
+
+public:
+    constexpr Tile() = default;
+
+    constexpr Tile(PieceId id, Piece piece) {
+        pack(id, piece);
+    }
+
+    [[nodiscard]] constexpr auto unpack() const -> std::pair<PieceId, Piece> {
+        u8 id_bits    = (m_raw & kIdMask) >> 4;
+        u8 piece_bits = (m_raw & kPieceMask);
+
+        return {PieceId{id_bits}, Piece{static_cast<Piece::Underlying>(piece_bits)}};
+    }
+
+private:
+    constexpr auto pack(PieceId id, Piece piece) -> void {
+        u8 id_bits    = std::bit_cast<u8>(id);
+        u8 piece_bits = std::bit_cast<u8>(piece);
+
+        m_raw = id_bits << 4 | piece_bits;
+    }
+
+    u8 m_raw{};
+};
+
+class alignas(64) ByteBoard {
+public:
+    constexpr ByteBoard() = default;
+
+    [[nodiscard]] constexpr auto operator[](Square square) -> Tile& {
+        return m_byte_board[square];
+    }
+
+    [[nodiscard]] constexpr auto operator[](Square square) const -> const Tile& {
+        return m_byte_board[square];
+    }
+
+private:
+    std::array<Tile, 64> m_byte_board;
+};
+
+class alignas(64) WordBoard {
+public:
+    constexpr WordBoard() = default;
+
+    [[nodiscard]] constexpr auto operator[](Square square) -> PieceMask& {
+        return m_word_board[square];
+    }
+
+    [[nodiscard]] constexpr auto operator[](Square square) const -> const PieceMask& {
+        return m_word_board[square];
+    }
+
+    [[nodiscard]] constexpr auto attacked_by(PieceId attacker) const -> BitBoard {
+        BitBoard out{};
+
+        for (Square target : kSquares) {
+            if ((*this)[target].has_id(attacker)) {
+                out.set_square(target);
+            }
+        }
+
+        return out;
+    }
+
+private:
+    std::array<PieceMask, 64> m_word_board;
+};
+
+class PieceList {
+public:
+    constexpr PieceList() = default;
+
+    auto add_piece(Square at, Piece to) -> PieceId;
+    auto move_piece(PieceId piece_id, Square dst) -> void;
+    auto delete_piece(PieceId piece_id) -> void;
+    auto mutate_piece(PieceId piece_id, PieceType to) -> void;
+
+    [[nodiscard]] auto get_info(PieceId piece_id) const -> std::pair<Square, PieceType> {
+        usize idx = static_cast<usize>(piece_id);
+        return {m_squares[idx], m_piece_types[idx]};
+    }
+
+    [[nodiscard]] auto begin() const -> PieceMask::Iterator {
+        return m_piece_mask.begin();
+    }
+
+    [[nodiscard]] static auto end() -> PieceMask::Iterator {
+        return PieceMask::end();
+    }
+
+    [[nodiscard]] auto piece_type(PieceType piece_type) const -> PieceMask {
+        PieceMask out;
+        for (PieceId id : m_piece_mask) {
+            PieceType pt;
+            std::tie(std::ignore, pt) = get_info(id);
+
+            if (pt == piece_type) {
+                out.set_id(id);
+            }
+        }
+
+        return out;
+    }
+
+private:
+    PieceMask                             m_piece_mask{};
+    std::array<Square, PieceMask::kNb>    m_squares;
+    std::array<PieceType, PieceMask::kNb> m_piece_types;
 };
 
 class CastlingRights {
@@ -54,7 +231,9 @@ public:
         kBlack      = kBlackKSide | kBlackQSide,
     };
 
-    /* implicit */ CastlingRights(Underlying raw) : m_raw(raw) {}
+    /* implicit */ CastlingRights(Underlying raw) :
+        m_raw(raw) {
+    }
 
     /* implicit */ operator Underlying() const {
         return static_cast<Underlying>(m_raw);
@@ -68,12 +247,16 @@ public:
         return color == Color::kWhite ? kWhite : kBlack;
     }
 
-    constexpr void add_casting_rights(CastlingRights castling_rights) {
+    constexpr auto add_casting_rights(CastlingRights castling_rights) -> void {
         m_raw |= castling_rights;
     }
 
-    constexpr void del_castling_rights(CastlingRights castling_rights) {
+    constexpr auto del_castling_rights(CastlingRights castling_rights)  -> void {
         m_raw &= ~castling_rights;
+    }
+
+    [[nodiscard]] constexpr auto has_castling_rights(CastlingRights castling_rights) const -> bool {
+        return m_raw & castling_rights;
     }
 
     [[nodiscard]] auto to_string() const -> std::string {
@@ -108,12 +291,35 @@ public:
 
     static auto parse(std::string_view fen) -> Position;
 
-    [[nodiscard]] auto tile_at(Square at) const -> Piece;
+    [[nodiscard]] auto piece_at(Square at) const -> Piece;
+    [[nodiscard]] auto tile_at(Square at) const -> Tile;
+    [[nodiscard]] auto attackers_to(Square to) const -> ColorMap<PieceMask>;
+
+    [[nodiscard]] auto info_of(PieceId id, Color color) const -> std::pair<Square, PieceType>;
 
     [[nodiscard]] auto to_string() const -> std::string;
 
     [[nodiscard]] auto castling_rights() const -> const CastlingRights&;
     [[nodiscard]] auto en_passant() const -> Square;
+    [[nodiscard]] auto side_to_move() const -> Color;
+
+    [[nodiscard]] auto piece_mask_for(Color side_to_move, PieceType piece_type) const -> PieceMask;
+
+    template<typename... Pts>
+        requires((std::is_same_v<Pts, PieceType::Underlying> && ...) && sizeof...(Pts) > 0)
+    [[nodiscard]] auto pieces(Color color, Pts... piece_types) const -> BitBoard {
+        return (m_bit_boards[color][piece_types] | ...);
+    }
+
+    [[nodiscard]] auto pieces(Color color) const -> BitBoard;
+    [[nodiscard]] auto pieces() const -> BitBoard;
+
+    [[nodiscard]] auto attacked_by(Color color, PieceId id) const -> BitBoard;
+
+    [[nodiscard]] auto king_square(Color side_to_move) const -> Square;
+    [[nodiscard]] auto king_square() const -> Square;
+    [[nodiscard]] auto checkers_nb() const -> i32;
+    [[nodiscard]] auto pin_rays() const -> BitBoard;
 
 private:
     Position() = default;
@@ -125,7 +331,22 @@ private:
     auto delete_piece(Square at) -> void;
     auto mutate_piece(Square at, PieceType to) -> void;
 
-    Mailbox m_mailbox{};
+    auto generate_full_attack_table() -> void;
+    auto update_attack_table(Color color, Square square, PieceType piece_type, PieceId piece_id)
+      -> void;
+    template<PieceType::Underlying PieceType>
+    auto update_attack_table_for(Color color, Square square, PieceId piece_id) -> void = delete;
+    auto update_diagonal_sliders_for(Color color, Square square, PieceId piece_id) -> void;
+    auto update_orthogonal_sliders_for(Color color, Square square, PieceId piece_id) -> void;
+
+    auto calculate_pin_rays() -> void;
+
+    ColorMap<WordBoard>              m_attack_table{};
+    ByteBoard                        m_mail_box{};
+    ColorMap<PieceList>              m_piece_list{};
+    ColorMap<PieceTypeMap<BitBoard>> m_bit_boards{};
+
+    BitBoard m_pin_rays{};
 
     Color          m_side_to_move{Color::kWhite};
     u8             m_move_rule{0};

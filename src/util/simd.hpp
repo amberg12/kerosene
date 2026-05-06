@@ -15,31 +15,9 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-#include "move.hpp"
-#include "position.hpp"
+#pragma once
+#include "../common.hpp"
 
 namespace kerosene {
-auto Move::parse(const std::string& move, const Position& context) -> Move {
-    Square src = *Square::parse(move.substr(0, 2));
-    Square dst = *Square::parse(move.substr(2, 2));
-
-    if (move.size() == 5) {
-        return Move::create_promotion(src, dst, PieceType::parse(move[5]));
-    }
-
-    if (context.en_passant() == dst) {
-        return Move::create_en_passant(src, dst);
-    }
-
-    if (context.piece_at(src).piece_type() == PieceType::kKing) {
-        int diff = std::abs(src.file() - dst.file());
-
-        if (diff >= 2) {
-            return Move::create_castling(src, dst);
-        }
-    }
-
-    return Move{src, dst};
-}
-}
+constexpr usize kMaxSimdAlign = 64;
+}  // namespace kerosene

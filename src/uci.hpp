@@ -36,6 +36,7 @@ private:
 
     auto handle_position(std::istringstream& is) -> void;
     auto handle_d(std::istringstream& is) const -> void;
+    auto handle_perft(std::istringstream& is) const -> void;
 
     Position m_position{Position::parse(kStartPos)};
 };

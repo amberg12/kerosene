@@ -17,13 +17,13 @@
  */
 
 #pragma once
+#include <array>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include "common.hpp"
-
-#include <utility>
 
 namespace kerosene {
 
@@ -66,6 +66,27 @@ constexpr auto operator~(Color color) -> Color {
     return static_cast<Color::Underlying>(std::to_underlying(color.m_raw) ^ 1);
 }
 
+template<typename T>
+class ColorMap {
+public:
+    ColorMap() = default;
+
+    ColorMap(T white, T black) :
+        m_underlying({white, black}) {
+    }
+
+    auto operator[](Color color) -> T& {
+        return m_underlying[static_cast<usize>(color)];
+    }
+
+    auto operator[](Color color) const -> const T& {
+        return m_underlying[static_cast<usize>(color)];
+    }
+
+private:
+    std::array<T, 2> m_underlying{};
+};
+
 class Direction {
 public:
     enum Underlying {
@@ -105,6 +126,10 @@ public:
     };
     // clang-format on
 
+    static constexpr usize kNb = 64;
+
+    constexpr Square() = default;
+
     /* implicit */ constexpr Square(Underlying raw) :
         m_raw(raw) {
     }
@@ -113,7 +138,7 @@ public:
         m_raw(static_cast<Underlying>(idx)) {
     }
 
-    constexpr Square(u8 file, u8 rank) :
+    constexpr Square(std::integral auto file, std::integral auto rank) :
         m_raw(static_cast<Underlying>(rank * 8 + file)) {
     }
 
@@ -121,16 +146,27 @@ public:
         return kInvalid;
     }
 
-    [[nodiscard]] constexpr auto file() const -> u8 {
-        return static_cast<u8>(m_raw) % 8;
+    [[nodiscard]] constexpr auto file() const -> i8 {
+        return static_cast<i8>(m_raw) % 8;
     }
 
-    [[nodiscard]] constexpr auto rank() const -> u8 {
-        return static_cast<u8>(m_raw) / 8;
+    [[nodiscard]] constexpr auto rank() const -> i8 {
+        return static_cast<i8>(m_raw) / 8;
     }
 
     /* implicit */ constexpr operator usize() const {
         return m_raw;
+    }
+
+    [[nodiscard]] auto to_string() const -> std::string {
+        if (m_raw == kInvalid) {
+            return "";
+        }
+
+        char file_c = static_cast<char>('a' + file());
+        char rank_c = static_cast<char>('1' + rank());
+
+        return std::string{file_c, rank_c};
     }
 
     static constexpr auto parse(std::string_view s) -> std::optional<Square> {
@@ -155,11 +191,50 @@ public:
         return Square(file, rank);
     }
 
+    [[nodiscard]] constexpr auto promotion_rank(Color side_to_move) const -> bool {
+        (void)side_to_move;
+        return rank() == 0 || rank() == 7;
+    }
+
+    [[nodiscard]] constexpr auto third_rank(Color side_to_move) const -> bool {
+        return side_to_move == Color::kWhite ? rank() == 2 : rank() == 5;
+    }
+
+    [[nodiscard]] constexpr auto diagonal_to(Square rhs) const -> bool {
+        i8 d_file = file() - rhs.file();
+        i8 d_rank = rank() - rhs.rank();
+
+        return std::abs(d_file) == std::abs(d_rank);
+    }
+
+    [[nodiscard]] constexpr auto orthogonal_to(Square rhs) const -> bool {
+        return file() == rhs.file() || rank() == rhs.rank();
+    }
+
     friend constexpr auto operator+(Square square, Direction direction) -> Square;
 
 private:
     Underlying m_raw = kInvalid;
 };
+
+constexpr auto is_valid_coordinate(i8 rank_or_file) -> bool {
+    return rank_or_file >= 0 && rank_or_file < 8;
+}
+
+constexpr std::array<Square, Square::kNb> kSquares = [] {
+    std::array<Square, Square::kNb> out;
+
+    for (usize i = 0; i < 64; ++i) {
+        out[i] = Square{i};
+    }
+
+    return out;
+}();
+
+constexpr std::array<Square, 2> kWhiteKSideSquares{Square::kF1, Square::kG1};
+constexpr std::array<Square, 2> kBlackKSideSquares{Square::kF8, Square::kG8};
+constexpr std::array<Square, 2> kWhiteQSideSquares{Square::kC1, Square::kD1};
+constexpr std::array<Square, 2> kBlackQSideSquares{Square::kC8, Square::kD8};
 
 auto constexpr operator+(Square square, Direction direction) -> Square {
     return Square{static_cast<usize>(square) + static_cast<usize>(direction)};
@@ -177,6 +252,8 @@ public:
         kKing,
     };
 
+    constexpr PieceType() = default;
+
     /* implicit */ PieceType(Underlying raw) :
         m_raw(raw) {
     }
@@ -187,6 +264,10 @@ public:
 
     /* implicit */ constexpr operator usize() const {
         return m_raw;
+    }
+
+    [[nodiscard]] constexpr auto slider() const -> bool {
+        return *this == kBishop || *this == kRook || *this == kQueen;
     }
 
     static constexpr auto parse(char c) -> PieceType {
@@ -217,6 +298,27 @@ public:
 
 private:
     Underlying m_raw{kEmpty};
+};
+
+template<typename T>
+class PieceTypeMap {
+public:
+    PieceTypeMap() = default;
+
+    auto operator[](PieceType piece_type) const -> const T& {
+        return m_underlying[compress_idx(piece_type)];
+    }
+
+    auto operator[](PieceType piece_type) -> T& {
+        return m_underlying[compress_idx(piece_type)];
+    }
+
+private:
+    static constexpr auto compress_idx(PieceType piece_type) -> usize {
+        return static_cast<usize>(piece_type) - 1;
+    }
+
+    std::array<T, 6> m_underlying{};
 };
 
 class Piece {

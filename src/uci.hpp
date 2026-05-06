@@ -18,10 +18,9 @@
 
 #pragma once
 
-#include "position.hpp"
-
-
 #include <string>
+#include "position.hpp"
+#include "search.hpp"
 
 namespace kerosene {
 
@@ -37,8 +36,10 @@ private:
     auto handle_position(std::istringstream& is) -> void;
     auto handle_d(std::istringstream& is) const -> void;
     auto handle_perft(std::istringstream& is) const -> void;
+    auto handle_go(std::istringstream& is) -> void;
 
     Position m_position{Position::parse(kStartPos)};
+    Searcher m_searcher{};
 };
 
 }  // kerosene

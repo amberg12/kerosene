@@ -1,5 +1,5 @@
 /*
-  Kerosene - A UCI chess engine.
+  Shellac - A UCI chess engine.
   Copyright (C) 2026 Amber Goulding
 
   This program is free software: you can redistribute it and/or modify
@@ -16,35 +16,21 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
-#include <chrono>
-#include <cstdint>
+#include "time_manager.hpp"
 
 namespace kerosene {
 
-using i8  = std::int8_t;
-using i16 = std::int16_t;
-using i32 = std::int32_t;
-using i64 = std::int64_t;
+TimeManager::TimeManager(Color side_to_move, TimeParameters time_parameters) {
+    auto [time, inc] = side_to_move == Color::kWhite
+                       ? std::pair{time_parameters.wtime, time_parameters.winc}
+                       : std::pair{time_parameters.btime, time_parameters.binc};
 
-using u8  = std::uint8_t;
-using u16 = std::uint16_t;
-using u32 = std::uint32_t;
-using u64 = std::uint64_t;
+    m_start_time = time::Clock::now();
+    m_time_limit = time / 20 + inc / 2;
+}
 
-using usize = std::size_t;
-using isize = std::ptrdiff_t;
-static_assert(sizeof(usize) == sizeof(isize));
-
-using f32 = float;
-using f64 = double;
-
-namespace time {
-using Clock        = std::chrono::steady_clock;
-using TimePoint    = std::chrono::time_point<Clock>;
-using Duration     = TimePoint::duration;
-using Milliseconds = std::chrono::duration<i64, std::milli>;
-}  // namespace time
+auto TimeManager::stop() const -> bool {
+    return time::Clock::now() > m_start_time + m_time_limit;
+}
 
 }

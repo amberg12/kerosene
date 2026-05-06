@@ -16,13 +16,13 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "uci.hpp"
+#include "move.hpp"
+#include "move_generation.hpp"
+#include "util/integer_types.hpp"
 #include <iostream>
 #include <print>
 #include <sstream>
-#include "uci.hpp"
-#include "util/integer_types.hpp"
-#include "move.hpp"
-#include "move_generation.hpp"
 
 namespace kerosene {
 
@@ -58,6 +58,10 @@ auto Uci::execute_command(const std::string& line) -> void {
         handle_d(is);
     } else if (command == "perft") {
         handle_perft(is);
+    } else if (command == "go") {
+        handle_go(is);
+    } else if (command == "isready") {
+        std::println("readyok");
     }
 }
 
@@ -86,7 +90,7 @@ auto Uci::handle_position(std::istringstream& is) -> void {
                 continue;
             }
 
-            Move move = Move::parse(token, m_position);
+            Move move  = Move::parse(token, m_position);
             m_position = Position{m_position, move};
         }
     }
@@ -103,6 +107,31 @@ auto Uci::handle_perft(std::istringstream& is) const -> void {
     is >> depth;
     u64 total_nodes = perft(m_position, depth);
     std::println("Total nodes: {}", total_nodes);
+}
+
+auto Uci::handle_go(std::istringstream& is) -> void {
+    std::string    token;
+    TimeParameters time_parameters;
+    i64            i64_buf;
+
+    while (is >> token) {
+        if (token == "wtime") {
+            is >> i64_buf;
+            time_parameters.wtime = static_cast<time::Milliseconds>(i64_buf);
+        } else if (token == "btime") {
+            is >> i64_buf;
+            time_parameters.btime = static_cast<time::Milliseconds>(i64_buf);
+        } else if (token == "winc") {
+            is >> i64_buf;
+            time_parameters.winc = static_cast<time::Milliseconds>(i64_buf);
+        } else if (token == "binc") {
+            is >> i64_buf;
+            time_parameters.binc = static_cast<time::Milliseconds>(i64_buf);
+        }
+    }
+
+    m_searcher.set_position(m_position);
+    m_searcher.begin_search(time_parameters);
 }
 
 }  // kerosene

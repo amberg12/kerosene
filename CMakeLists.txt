@@ -19,4 +19,11 @@ add_executable(Kerosene
         src/move_generation.hpp
         src/util/simd.hpp
         src/util/template.hpp
-        src/bit_board.hpp)
+        src/bit_board.hpp
+        src/evaluation.cpp
+        src/evaluation.hpp
+        src/score.hpp
+        src/search.cpp
+        src/search.hpp
+        src/time_manager.cpp
+        src/time_manager.hpp)

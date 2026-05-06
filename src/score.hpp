@@ -17,34 +17,28 @@
  */
 
 #pragma once
-
-#include <chrono>
-#include <cstdint>
+#include "util/integer_types.hpp"
 
 namespace kerosene {
 
-using i8  = std::int8_t;
-using i16 = std::int16_t;
-using i32 = std::int32_t;
-using i64 = std::int64_t;
+using Score = i32;
 
-using u8  = std::uint8_t;
-using u16 = std::uint16_t;
-using u32 = std::uint32_t;
-using u64 = std::uint64_t;
+constexpr Score kNegativeInf = -32'000;
+constexpr Score kPositiveInf = 32'000;
 
-using usize = std::size_t;
-using isize = std::ptrdiff_t;
-static_assert(sizeof(usize) == sizeof(isize));
+constexpr Score kMateScore     = 31'000;
+constexpr Score kMateThreshold = 30'000;
 
-using f32 = float;
-using f64 = double;
-
-namespace time {
-using Clock        = std::chrono::steady_clock;
-using TimePoint    = std::chrono::time_point<Clock>;
-using Duration     = TimePoint::duration;
-using Milliseconds = std::chrono::duration<i64, std::milli>;
-}  // namespace time
-
+constexpr auto mated_in(i32 ply) -> Score {
+    return -kMateScore + ply;
 }
+
+constexpr auto is_mate(Score score) -> bool {
+    return std::abs(score) > kMateThreshold;
+}
+
+constexpr auto mate_in(Score score) -> i32 {
+    return score > 0 ? kMateScore - score : kMateScore + score;
+}
+
+}  // namespace kerosene

@@ -17,34 +17,33 @@
  */
 
 #pragma once
-
-#include <chrono>
-#include <cstdint>
+#include "position.hpp"
+#include "score.hpp"
+#include "time_manager.hpp"
 
 namespace kerosene {
 
-using i8  = std::int8_t;
-using i16 = std::int16_t;
-using i32 = std::int32_t;
-using i64 = std::int64_t;
+enum class NodeType {
+    kRoot,
+    kNonPv,
+};
 
-using u8  = std::uint8_t;
-using u16 = std::uint16_t;
-using u32 = std::uint32_t;
-using u64 = std::uint64_t;
+class Searcher {
+public:
+    Searcher() = default;
 
-using usize = std::size_t;
-using isize = std::ptrdiff_t;
-static_assert(sizeof(usize) == sizeof(isize));
+    auto set_position(const Position& root_position) -> void;
 
-using f32 = float;
-using f64 = double;
+    auto begin_search(TimeParameters time_parameters) -> void;
 
-namespace time {
-using Clock        = std::chrono::steady_clock;
-using TimePoint    = std::chrono::time_point<Clock>;
-using Duration     = TimePoint::duration;
-using Milliseconds = std::chrono::duration<i64, std::milli>;
-}  // namespace time
+private:
+    auto iterative_deepening() -> void;
+    template<NodeType kNodeType>
+    auto search(const Position& position, i32 depth, Score alpha, Score beta, i32 ply) -> Score;
 
-}
+    Position    m_root_position = Position::parse(kStartPos);
+    TimeManager m_time_manager;
+    Move        m_best_move;
+};
+
+}  // namespace kerosene

@@ -22,8 +22,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
-
-#include "common.hpp"
+#include "util/integer_types.hpp"
 
 namespace kerosene {
 

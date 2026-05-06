@@ -19,8 +19,7 @@
 #pragma once
 #include <array>
 #include <cstring>
-
-#include "../common.hpp"
+#include "integer_types.hpp"
 
 namespace kerosene {
 

@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include "../common.hpp"
+#include "integer_types.hpp"
 
 namespace kerosene {
 constexpr usize kMaxSimdAlign = 64;

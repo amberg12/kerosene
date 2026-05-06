@@ -18,10 +18,9 @@
 
 #pragma once
 
-#include "common.hpp"
-#include "position.hpp"
 #include "types.hpp"
 #include "util/bits.hpp"
+#include "util/integer_types.hpp"
 
 namespace kerosene {
 

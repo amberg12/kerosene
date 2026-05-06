@@ -19,10 +19,8 @@
 #include <iostream>
 #include <print>
 #include <sstream>
-
-#include "common.hpp"
 #include "uci.hpp"
-
+#include "util/integer_types.hpp"
 #include "move.hpp"
 #include "move_generation.hpp"
 

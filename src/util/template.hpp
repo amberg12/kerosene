@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include "../common.hpp"
 #include <concepts>
 #include <type_traits>
+#include "integer_types.hpp"
 
 namespace kerosene {
 

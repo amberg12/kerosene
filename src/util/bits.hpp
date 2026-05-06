@@ -17,10 +17,8 @@
  */
 
 #pragma once
-#include "template.hpp"
-
-
 #include <type_traits>
+#include "template.hpp"
 
 namespace kerosene {
 

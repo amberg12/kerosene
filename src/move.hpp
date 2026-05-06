@@ -17,10 +17,9 @@
  */
 
 #pragma once
-#include "common.hpp"
-#include "types.hpp"
-
 #include <string>
+#include "types.hpp"
+#include "util/integer_types.hpp"
 
 namespace kerosene {
 class Position;

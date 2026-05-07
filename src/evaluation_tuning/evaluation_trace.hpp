@@ -17,13 +17,26 @@
  */
 
 #pragma once
-#include "position.hpp"
-#include "score.hpp"
-#include "evaluation_tuning/evaluation_trace.hpp"
+#include "evaluation_features.hpp"
+#include "../types.hpp"
 
-namespace kerosene {
+namespace kerosene::tuning {
 
-template <bool kEnableTracing = false>
-auto evaluate(const Position& pos, tuning::EvaluationTrace* eval_trace = nullptr) -> Score;
+class EvaluationTrace : public FeatureMap<i32> {
+public:
+    template <Color::Underlying kColor>
+    auto increment_feature(EvalFeature eval_feat, i32 by) -> void {
+        if (kColor == Color::kWhite) {
+            feature(eval_feat) += by;
+        } else {
+            feature(eval_feat) -= by;
+        }
+    }
 
-}  // namespace kerosene
+    template <Color::Underlying kColor>
+    auto increment_feature(EvalFeature eval_feat) -> void {
+        increment_feature<kColor>(eval_feat, 1);
+    }
+};
+
+}  // namespace kerosene::tuning

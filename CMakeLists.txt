@@ -26,4 +26,6 @@ add_executable(Kerosene
         src/search.cpp
         src/search.hpp
         src/time_manager.cpp
-        src/time_manager.hpp)
+        src/time_manager.hpp
+        src/evaluation_tuning/evaluation_features.hpp
+        src/evaluation_tuning/evaluation_trace.hpp)

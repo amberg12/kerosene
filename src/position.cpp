@@ -186,6 +186,10 @@ auto Position::piece_mask_for(Color side_to_move, PieceType piece_type) const ->
     return m_piece_list[side_to_move].piece_type(piece_type);
 }
 
+auto Position::piece_count(Color side_to_move, PieceType piece_type) const -> i32 {
+    return piece_mask_for(side_to_move, piece_type).popcount();
+}
+
 auto Position::pieces(Color color) const -> BitBoard {
     return pieces(color, PieceType::kPawn, PieceType::kKnight, PieceType::kBishop, PieceType::kRook,
                   PieceType::kQueen, PieceType::kKing);

@@ -41,4 +41,25 @@ constexpr auto mate_in(Score score) -> i32 {
     return score > 0 ? kMateScore - score : kMateScore + score;
 }
 
+struct ScorePair {
+    Score mg{};
+    Score eg{};
+
+    [[nodiscard]] auto taper(i32 phase) const -> Score {
+        return (mg * phase + eg * (24 - phase)) / 24;
+    }
+
+    friend auto operator+=(ScorePair& lhs, ScorePair rhs) -> ScorePair& {
+        lhs.mg += rhs.mg;
+        lhs.eg += rhs.eg;
+        return lhs;
+    }
+
+    friend auto operator-=(ScorePair& lhs, ScorePair rhs) -> ScorePair& {
+        lhs.mg -= rhs.mg;
+        lhs.eg -= rhs.eg;
+        return lhs;
+    }
+};
+
 }  // namespace kerosene

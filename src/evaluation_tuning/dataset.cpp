@@ -17,6 +17,7 @@
  */
 
 #include "dataset.hpp"
+#include "../evaluation.hpp"
 #include <sstream>
 
 namespace kerosene::tuning {
@@ -29,21 +30,26 @@ auto parse_dataset(std::istream& data, std::optional<usize> limit) -> Dataset {
     while (std::getline(data, line)) {
         std::istringstream ss(line);
 
-        DatasetEntry entry;
+        std::string fen;
+        Result      result;
 
         while (ss >> token) {
             if (token == "[0.0]") {
-                entry.result = Result::kBlack;
+                result = Result::kBlack;
             } else if (token == "[0.5]") {
-                entry.result = Result::kDraw;
+                result = Result::kDraw;
             } else if (token == "[1.0]") {
-                entry.result = Result::kWhite;
+                result = Result::kWhite;
             } else {
-                entry.fen += token + " ";
+                fen += token + " ";
             }
         }
 
-        out.emplace_back(entry);
+        auto pos = Position::parse(fen);
+        EvaluationTrace X_i;
+        (void)evaluate<true>(pos, &X_i);
+
+        out.emplace_back(X_i, pos.phase(), result);
 
         if (limit && *limit > lines) {
             break;

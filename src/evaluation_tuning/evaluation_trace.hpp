@@ -22,7 +22,7 @@
 
 namespace kerosene::tuning {
 
-class EvaluationTrace : public FeatureMap<i32> {
+class EvaluationTrace : public FeatureMap<i8> {
 public:
     template <Color::Underlying kColor>
     auto increment_feature(EvalFeature eval_feat, i32 by) -> void {
@@ -36,6 +36,20 @@ public:
     template <Color::Underlying kColor>
     auto increment_feature(EvalFeature eval_feat) -> void {
         increment_feature<kColor>(eval_feat, 1);
+    }
+
+    template <Color::Underlying kColor>
+    auto increment_feature(EvalFeature eval_feat, Square square) -> void {
+        increment_feature<kColor>(eval_feat, square, 1);
+    }
+
+    template <Color::Underlying kColor>
+    auto increment_feature(EvalFeature eval_feat, Square square, i32 by) -> void {
+        if (kColor == Color::kWhite) {
+            feature(eval_feat, square) += by;
+        } else {
+            feature(eval_feat, square) -= by;
+        }
     }
 };
 

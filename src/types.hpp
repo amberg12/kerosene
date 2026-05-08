@@ -157,6 +157,10 @@ public:
         return m_raw;
     }
 
+    [[nodiscard]] constexpr auto mirror() const -> Square {
+        return Square(m_raw ^ 56);
+    }
+
     [[nodiscard]] auto to_string() const -> std::string {
         if (m_raw == kInvalid) {
             return "";

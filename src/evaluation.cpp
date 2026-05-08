@@ -182,7 +182,7 @@ auto evaluate(const Position& pos, tuning::EvaluationTrace* eval_trace) -> Score
     out -= evaluate_queens<Color::kBlack, kEnableTracing>(pos, eval_trace);
     out -= evaluate_king<Color::kBlack, kEnableTracing>(pos, eval_trace);
 
-    Score score = out.taper(24);
+    Score score = out.taper(pos.phase());
 
     return pos.side_to_move() == Color::kWhite ? score : -score;
 }

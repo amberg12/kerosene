@@ -214,7 +214,7 @@ auto Position::phase() const -> i32 {
     out += piece_count(Color::kWhite, PieceType::kQueen) * 4;
     out += piece_count(Color::kBlack, PieceType::kQueen) * 4;
 
-    return out;
+    return std::clamp(out, 0, 24);
 }
 
 auto Position::attacked_by(Color color, PieceId id) const -> BitBoard {

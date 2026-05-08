@@ -17,13 +17,10 @@
  */
 
 #pragma once
-#include "position.hpp"
-#include "score.hpp"
-#include "evaluation_tuning/evaluation_trace.hpp"
+#include "dataset.hpp"
 
-namespace kerosene {
+namespace kerosene::tuning {
 
-template <bool kEnableTracing = false>
-auto evaluate(const Position& pos, tuning::EvaluationTrace* eval_trace = nullptr) -> Score;
+auto sgdm(Dataset& dataset, i32 epochs, f64 lr, i32 batch_size, f64 lambda) -> void;
 
-}  // namespace kerosene
+}

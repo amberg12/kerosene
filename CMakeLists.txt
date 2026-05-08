@@ -3,8 +3,7 @@ project(Kerosene)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_executable(Kerosene
-        src/main.cpp
+set(SRCS
         src/util/integer_types.hpp
         src/uci.cpp
         src/uci.hpp
@@ -26,4 +25,21 @@ add_executable(Kerosene
         src/search.cpp
         src/search.hpp
         src/time_manager.cpp
-        src/time_manager.hpp)
+        src/time_manager.hpp
+        src/evaluation_tuning/evaluation_features.hpp
+        src/evaluation_tuning/evaluation_trace.hpp
+        src/evaluation_tuning/dataset.hpp
+        src/evaluation_tuning/dataset.cpp
+        src/evaluation_tuning/sgdm.cpp
+        src/evaluation_tuning/sgdm.hpp
+)
+
+add_executable(Kerosene
+        src/main.cpp
+        ${SRCS}
+)
+
+add_executable(KeroseneTuning
+        src/evaluation_tuning/tuning_main.cpp
+        ${SRCS}
+)

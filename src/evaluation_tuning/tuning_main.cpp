@@ -16,14 +16,17 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-#include "position.hpp"
-#include "score.hpp"
-#include "evaluation_tuning/evaluation_trace.hpp"
+#include "dataset.hpp"
+#include "sgdm.hpp"
+#include <fstream>
 
-namespace kerosene {
+using namespace kerosene;
 
-template <bool kEnableTracing = false>
-auto evaluate(const Position& pos, tuning::EvaluationTrace* eval_trace = nullptr) -> Score;
+auto main(int argc, char* argv[]) -> int {
+    std::string  input_file = argv[1];
+    std::fstream fs(input_file);
 
-}  // namespace kerosene
+    tuning::Dataset dataset = tuning::parse_dataset(fs);
+
+    tuning::sgdm(dataset, 500, 0.1, 32, 1e-4);
+}

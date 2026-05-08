@@ -17,13 +17,41 @@
  */
 
 #pragma once
-#include "position.hpp"
-#include "score.hpp"
-#include "evaluation_tuning/evaluation_trace.hpp"
 
-namespace kerosene {
+#include "../util/integer_types.hpp"
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
-template <bool kEnableTracing = false>
-auto evaluate(const Position& pos, tuning::EvaluationTrace* eval_trace = nullptr) -> Score;
+namespace kerosene::tuning {
 
-}  // namespace kerosene
+enum class Result : u8 {
+    kBlack,
+    kDraw,
+    kWhite,
+};
+
+constexpr auto parse(Result r) -> f64 {
+    switch (r) {
+    case Result::kBlack:
+        return 0.0;
+    case Result::kDraw:
+        return 0.5;
+    case Result::kWhite:
+        return 1.0;
+    }
+
+    std::unreachable();
+}
+
+struct DatasetEntry {
+    std::string fen;
+    Result      result{};
+};
+
+using Dataset = std::vector<DatasetEntry>;
+
+auto parse_dataset(std::istream& data, std::optional<usize> limit = std::nullopt) -> Dataset;
+
+}

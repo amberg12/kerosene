@@ -304,6 +304,7 @@ public:
     [[nodiscard]] auto side_to_move() const -> Color;
 
     [[nodiscard]] auto piece_mask_for(Color side_to_move, PieceType piece_type) const -> PieceMask;
+    [[nodiscard]] auto piece_count(Color side_to_move, PieceType piece_type) const -> i32;
 
     template<typename... Pts>
         requires((std::is_same_v<Pts, PieceType::Underlying> && ...) && sizeof...(Pts) > 0)
@@ -313,6 +314,8 @@ public:
 
     [[nodiscard]] auto pieces(Color color) const -> BitBoard;
     [[nodiscard]] auto pieces() const -> BitBoard;
+
+    [[nodiscard]] auto phase() const -> i32;
 
     [[nodiscard]] auto attacked_by(Color color, PieceId id) const -> BitBoard;
 

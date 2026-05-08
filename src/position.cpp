@@ -186,6 +186,10 @@ auto Position::piece_mask_for(Color side_to_move, PieceType piece_type) const ->
     return m_piece_list[side_to_move].piece_type(piece_type);
 }
 
+auto Position::piece_count(Color side_to_move, PieceType piece_type) const -> i32 {
+    return piece_mask_for(side_to_move, piece_type).popcount();
+}
+
 auto Position::pieces(Color color) const -> BitBoard {
     return pieces(color, PieceType::kPawn, PieceType::kKnight, PieceType::kBishop, PieceType::kRook,
                   PieceType::kQueen, PieceType::kKing);
@@ -193,6 +197,24 @@ auto Position::pieces(Color color) const -> BitBoard {
 
 auto Position::pieces() const -> BitBoard {
     return pieces(Color::kWhite) | pieces(Color::kBlack);
+}
+
+auto Position::phase() const -> i32 {
+    i32 out{};
+
+    out += piece_count(Color::kWhite, PieceType::kKnight) * 1;
+    out += piece_count(Color::kBlack, PieceType::kKnight) * 1;
+
+    out += piece_count(Color::kWhite, PieceType::kBishop) * 1;
+    out += piece_count(Color::kBlack, PieceType::kBishop) * 1;
+
+    out += piece_count(Color::kWhite, PieceType::kRook) * 2;
+    out += piece_count(Color::kBlack, PieceType::kRook) * 2;
+
+    out += piece_count(Color::kWhite, PieceType::kQueen) * 4;
+    out += piece_count(Color::kBlack, PieceType::kQueen) * 4;
+
+    return out;
 }
 
 auto Position::attacked_by(Color color, PieceId id) const -> BitBoard {

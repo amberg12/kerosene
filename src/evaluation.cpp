@@ -19,26 +19,40 @@
 #include "evaluation.hpp"
 
 namespace kerosene {
+namespace {
+template <Color::Underlying kColor, bool kEnableTracing>
+auto evaluate_material(const Position& pos, tuning::EvaluationTrace* eval_trace) -> ScorePair {
+    i32 pawn_count = pos.piece_count(kColor, PieceType::kPawn);
+    i32 knight_count = pos.piece_count(kColor, PieceType::kKnight);
+    i32 bishop_count = pos.piece_count(kColor, PieceType::kBishop);
+    i32 rook_count = pos.piece_count(kColor, PieceType::kRook);
+    i32 queen_count = pos.piece_count(kColor, PieceType::kQueen);
 
-auto evaluate(const Position& pos) -> Score {
-    Score score = 0;
+    if constexpr (kEnableTracing) {
+        using enum tuning::EvalFeature;
 
-    score += pos.piece_mask_for(Color::kWhite, PieceType::kPawn).popcount()
-           - pos.piece_mask_for(Color::kBlack, PieceType::kPawn).popcount();
+        eval_trace->increment_feature<kColor>(kPawnMaterial, pawn_count);
+        eval_trace->increment_feature<kColor>(kKnightMaterial, knight_count);
+        eval_trace->increment_feature<kColor>(kBishopMaterial, bishop_count);
+        eval_trace->increment_feature<kColor>(kRookMaterial, rook_count);
+        eval_trace->increment_feature<kColor>(kQueenMaterial, queen_count);
+    }
 
-    score += pos.piece_mask_for(Color::kWhite, PieceType::kKnight).popcount()
-           - pos.piece_mask_for(Color::kBlack, PieceType::kKnight).popcount();
-
-    score += pos.piece_mask_for(Color::kWhite, PieceType::kBishop).popcount()
-           - pos.piece_mask_for(Color::kBlack, PieceType::kBishop).popcount();
-
-    score += pos.piece_mask_for(Color::kWhite, PieceType::kRook).popcount()
-           - pos.piece_mask_for(Color::kBlack, PieceType::kRook).popcount();
-
-    score += pos.piece_mask_for(Color::kWhite, PieceType::kQueen).popcount()
-           - pos.piece_mask_for(Color::kBlack, PieceType::kQueen).popcount();
-
-    return pos.side_to_move() == Color::kWhite ? score : -score;
+    return ScorePair{};
 }
+}  // namespace
+
+template <bool kEnableTracing>
+auto evaluate(const Position& pos, tuning::EvaluationTrace* eval_trace) -> Score {
+    ScorePair out{};
+
+    out += evaluate_material<Color::kWhite, kEnableTracing>(pos, eval_trace);
+    out -= evaluate_material<Color::kBlack, kEnableTracing>(pos, eval_trace);
+
+    return out.taper(24);
+}
+
+template auto evaluate<true>(const Position& pos, tuning::EvaluationTrace* eval_trace) -> Score;
+template auto evaluate<false>(const Position& pos, tuning::EvaluationTrace* eval_trace) -> Score;
 
 }  // namespace kerosene

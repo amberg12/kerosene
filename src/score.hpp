@@ -49,6 +49,14 @@ struct ScorePair {
         return (mg * phase + eg * (24 - phase)) / 24;
     }
 
+    friend auto operator*(ScorePair lhs, i32 rhs) -> ScorePair {
+        return {lhs.mg * rhs, lhs.eg * rhs};
+    }
+
+    friend auto operator+(ScorePair lhs, ScorePair rhs) -> ScorePair {
+        return {lhs.mg + rhs.mg, lhs.eg + rhs.eg};
+    }
+
     friend auto operator+=(ScorePair& lhs, ScorePair rhs) -> ScorePair& {
         lhs.mg += rhs.mg;
         lhs.eg += rhs.eg;

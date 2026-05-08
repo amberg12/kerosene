@@ -17,16 +17,19 @@
  */
 
 #include "evaluation.hpp"
+#include "evaluation_constants.hpp"
 
 namespace kerosene {
+using namespace kerosene::evaluation_constants;
+
 namespace {
-template <Color::Underlying kColor, bool kEnableTracing>
+template<Color::Underlying kColor, bool kEnableTracing>
 auto evaluate_material(const Position& pos, tuning::EvaluationTrace* eval_trace) -> ScorePair {
-    i32 pawn_count = pos.piece_count(kColor, PieceType::kPawn);
+    i32 pawn_count   = pos.piece_count(kColor, PieceType::kPawn);
     i32 knight_count = pos.piece_count(kColor, PieceType::kKnight);
     i32 bishop_count = pos.piece_count(kColor, PieceType::kBishop);
-    i32 rook_count = pos.piece_count(kColor, PieceType::kRook);
-    i32 queen_count = pos.piece_count(kColor, PieceType::kQueen);
+    i32 rook_count   = pos.piece_count(kColor, PieceType::kRook);
+    i32 queen_count  = pos.piece_count(kColor, PieceType::kQueen);
 
     if constexpr (kEnableTracing) {
         using enum tuning::EvalFeature;
@@ -38,11 +41,13 @@ auto evaluate_material(const Position& pos, tuning::EvaluationTrace* eval_trace)
         eval_trace->increment_feature<kColor>(kQueenMaterial, queen_count);
     }
 
-    return ScorePair{};
+    return kPawnMaterial * pawn_count + kKnightMaterial * knight_count
+         + kBishopMaterial * bishop_count + kRookMaterial * rook_count
+         + kQueenMaterial * queen_count;
 }
 }  // namespace
 
-template <bool kEnableTracing>
+template<bool kEnableTracing>
 auto evaluate(const Position& pos, tuning::EvaluationTrace* eval_trace) -> Score {
     ScorePair out{};
 

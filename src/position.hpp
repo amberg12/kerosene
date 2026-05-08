@@ -315,6 +315,8 @@ public:
     [[nodiscard]] auto pieces(Color color) const -> BitBoard;
     [[nodiscard]] auto pieces() const -> BitBoard;
 
+    [[nodiscard]] auto phase() const -> i32;
+
     [[nodiscard]] auto attacked_by(Color color, PieceId id) const -> BitBoard;
 
     [[nodiscard]] auto king_square(Color side_to_move) const -> Square;

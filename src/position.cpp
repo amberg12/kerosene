@@ -199,6 +199,24 @@ auto Position::pieces() const -> BitBoard {
     return pieces(Color::kWhite) | pieces(Color::kBlack);
 }
 
+auto Position::phase() const -> i32 {
+    i32 out{};
+
+    out += piece_count(Color::kWhite, PieceType::kKnight) * 1;
+    out += piece_count(Color::kBlack, PieceType::kKnight) * 1;
+
+    out += piece_count(Color::kWhite, PieceType::kBishop) * 1;
+    out += piece_count(Color::kBlack, PieceType::kBishop) * 1;
+
+    out += piece_count(Color::kWhite, PieceType::kRook) * 2;
+    out += piece_count(Color::kBlack, PieceType::kRook) * 2;
+
+    out += piece_count(Color::kWhite, PieceType::kQueen) * 4;
+    out += piece_count(Color::kBlack, PieceType::kQueen) * 4;
+
+    return out;
+}
+
 auto Position::attacked_by(Color color, PieceId id) const -> BitBoard {
     return m_attack_table[color].attacked_by(id);
 }

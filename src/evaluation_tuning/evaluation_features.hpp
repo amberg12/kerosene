@@ -31,10 +31,12 @@ enum class EvalFeature {
     kNb,
 };
 
+constexpr usize kFeatureCount = static_cast<usize>(EvalFeature::kNb);
+
 template <typename V>
 class FeatureMap {
 public:
-    using Array = std::array<V, static_cast<usize>(EvalFeature::kNb)>;
+    using Array = std::array<V, kFeatureCount>;
 
     FeatureMap() = default;
 
@@ -46,6 +48,14 @@ public:
     auto feature(EvalFeature eval_feat) const -> const V& {
         const V& feat = m_underlying[static_cast<usize>(eval_feat)];
         return feat;
+    }
+
+    auto feature(usize raw_feature_idx) -> V& {
+        return m_underlying[raw_feature_idx];
+    }
+
+    auto feature(usize raw_feature_idx) const -> const V& {
+        return m_underlying[raw_feature_idx];
     }
 
     auto as_array() const -> const Array& {

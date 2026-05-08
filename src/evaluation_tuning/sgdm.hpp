@@ -17,41 +17,10 @@
  */
 
 #pragma once
-
-#include "../util/integer_types.hpp"
-#include <optional>
-#include <string>
-#include <utility>
-#include <vector>
+#include "dataset.hpp"
 
 namespace kerosene::tuning {
 
-enum class Result : u8 {
-    kBlack,
-    kDraw,
-    kWhite,
-};
-
-constexpr auto parse(Result r) -> f64 {
-    switch (r) {
-    case Result::kBlack:
-        return 0.0;
-    case Result::kDraw:
-        return 0.5;
-    case Result::kWhite:
-        return 1.0;
-    }
-
-    std::unreachable();
-}
-
-struct DatasetEntry {
-    std::string fen;
-    Result      result{};
-};
-
-using Dataset = std::vector<DatasetEntry>;
-
-auto parse_dataset(std::istream& data, std::optional<usize> limit = std::nullopt) -> Dataset;
+auto sgdm(Dataset& dataset, i32 epochs, f64 lr, i32 batch_size, f64 lambda) -> void;
 
 }

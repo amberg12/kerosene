@@ -30,6 +30,8 @@ set(SRCS
         src/evaluation_tuning/evaluation_trace.hpp
         src/evaluation_tuning/dataset.hpp
         src/evaluation_tuning/dataset.cpp
+        src/evaluation_tuning/sgdm.cpp
+        src/evaluation_tuning/sgdm.hpp
 )
 
 add_executable(Kerosene

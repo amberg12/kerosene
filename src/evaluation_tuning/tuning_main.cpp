@@ -17,6 +17,7 @@
  */
 
 #include "dataset.hpp"
+#include "sgdm.hpp"
 #include <fstream>
 
 using namespace kerosene;
@@ -26,4 +27,6 @@ auto main(int argc, char* argv[]) -> int {
     std::fstream fs(input_file);
 
     tuning::Dataset dataset = tuning::parse_dataset(fs);
+
+    tuning::sgdm(dataset, 500, 0.1, 32, 1e-4);
 }

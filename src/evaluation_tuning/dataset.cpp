@@ -1,5 +1,5 @@
 /*
-  Shellac - A UCI chess engine.
+  Kerosene - A UCI chess engine.
   Copyright (C) 2026 Amber Goulding
 
   This program is free software: you can redistribute it and/or modify

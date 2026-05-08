@@ -181,7 +181,10 @@ auto evaluate(const Position& pos, tuning::EvaluationTrace* eval_trace) -> Score
     out -= evaluate_rooks<Color::kBlack, kEnableTracing>(pos, eval_trace);
     out -= evaluate_queens<Color::kBlack, kEnableTracing>(pos, eval_trace);
     out -= evaluate_king<Color::kBlack, kEnableTracing>(pos, eval_trace);
-    return out.taper(24);
+
+    Score score = out.taper(24);
+
+    return pos.side_to_move() == Color::kWhite ? score : -score;
 }
 
 template auto evaluate<true>(const Position& pos, tuning::EvaluationTrace* eval_trace) -> Score;

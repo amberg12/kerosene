@@ -240,6 +240,11 @@ auto Position::pin_rays() const -> BitBoard {
     return m_pin_rays;
 }
 
+auto Position::is_capture(Move move) const -> bool {
+    return move.special_type() == Move::kEnPassant
+        || piece_at(move.dst()).color() != m_side_to_move;
+}
+
 auto Position::make_move(Move move) -> void {
     m_en_passant_target_square = Square::kInvalid;
 
@@ -253,7 +258,7 @@ auto Position::make_move(Move move) -> void {
 
         if (mover.piece_type() == PieceType::kPawn) {
             if (std::abs(move.src().rank() - move.dst().rank()) == 2) {
-                auto pawn_direction = Direction::pawn_direction(side_to_move());
+                auto pawn_direction        = Direction::pawn_direction(side_to_move());
                 m_en_passant_target_square = move.src() + pawn_direction;
             }
         }

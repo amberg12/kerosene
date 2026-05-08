@@ -324,6 +324,7 @@ public:
     [[nodiscard]] auto checkers_nb() const -> i32;
     [[nodiscard]] auto pin_rays() const -> BitBoard;
 
+    [[nodiscard]] auto is_capture(Move move) const -> bool;
 private:
     Position() = default;
 

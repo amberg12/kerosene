@@ -20,6 +20,7 @@
 
 #include "evaluation.hpp"
 #include "move_generation.hpp"
+#include "move_picker.hpp"
 
 namespace kerosene {
 namespace {
@@ -84,13 +85,13 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
         return evaluate(position);
     }
 
-    MoveList legal_moves = generate_legal_moves(position);
+    MovePicker mp{position};
 
     Move  best_move            = kNullMove;
     Score best_score           = kNegativeInf;
     i32   searched_legal_moves = 0;
 
-    for (Move move : legal_moves) {
+    for (Move move = mp.next_move(); move; move = mp.next_move()) {
         ++searched_legal_moves;
 
         Position child_position{position, move};

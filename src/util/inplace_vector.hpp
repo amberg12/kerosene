@@ -17,9 +17,12 @@
  */
 
 #pragma once
-#include <array>
-#include <cstring>
 #include "integer_types.hpp"
+#include <array>
+#include <concepts>
+#include <cstring>
+#include <memory>
+#include <utility>
 
 namespace kerosene {
 
@@ -44,7 +47,7 @@ public:
     constexpr inplace_vector(const inplace_vector& other)
         requires(std::copyable<T>)
     {
-        std::memcpy(data(), other.data(), other.size());
+        std::memcpy(data(), other.data(), other.size() * sizeof(T));
         m_size = other.size();
     }
 
@@ -62,6 +65,40 @@ public:
         for (size_type i = 0; i < m_size; ++i) {
             destroy(i);
         }
+    }
+
+    constexpr auto operator=(const inplace_vector& rhs) -> inplace_vector&
+        requires(std::copyable<T>)
+    {
+        if (this == &rhs) {
+            return *this;
+        }
+
+        clear();
+
+        for (const auto& e : rhs) {
+            emplace_back(e);
+        }
+
+        return *this;
+    }
+
+    constexpr auto operator=(inplace_vector&& rhs) noexcept(
+      std::is_nothrow_move_constructible_v<T>) -> inplace_vector&
+        requires(std::movable<T>)
+    {
+        if (this == &rhs) {
+            return *this;
+        }
+
+        clear();
+
+        for (auto&& e : rhs) {
+            emplace_back(std::move(e));
+        }
+
+        rhs.clear();
+        return *this;
     }
 
     // Element access
@@ -148,6 +185,14 @@ public:
     }
 
     // Modifiers
+    constexpr auto clear() noexcept(std::is_nothrow_destructible_v<T>) -> void {
+        for (size_type i = 0; i < m_size; ++i) {
+            destroy(i);
+        }
+
+        m_size = 0;
+    }
+
     template<typename... Args>
     constexpr auto emplace_back(Args&&... args) -> reference
         requires(std::constructible_from<T, Args...>)

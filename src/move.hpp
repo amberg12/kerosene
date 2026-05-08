@@ -118,6 +118,10 @@ public:
 
     [[nodiscard]] static auto parse(const std::string& move, const Position& context) -> Move;
 
+    [[nodiscard]] constexpr operator bool() const {
+        return m_raw != 0;
+    }
+
 private:
     enum Flags : u16 {
         kSrcMask       = 0b0000'0000'0011'1111,

@@ -38,6 +38,8 @@ set(SRCS
 add_executable(Kerosene
         src/main.cpp
         ${SRCS}
+        src/move_picker.cpp
+        src/move_picker.hpp
 )
 
 add_executable(KeroseneTuning

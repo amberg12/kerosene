@@ -34,7 +34,7 @@ public:
         m_pos(pos) {
     }
 
-    auto next_move() -> Move;
+    auto next_move(bool skip_quiets = false) -> Move;
 
 private:
     const Position& m_pos;

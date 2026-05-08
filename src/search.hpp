@@ -38,6 +38,10 @@ public:
 
 private:
     auto iterative_deepening() -> void;
+
+    template<NodeType kNodeType>
+    auto quiesce(const Position& position, Score alpha, Score beta, i32 ply) -> Score;
+
     template<NodeType kNodeType>
     auto search(const Position& position, i32 depth, Score alpha, Score beta, i32 ply) -> Score;
 

@@ -45,6 +45,120 @@ auto evaluate_material(const Position& pos, tuning::EvaluationTrace* eval_trace)
          + kBishopMaterial * bishop_count + kRookMaterial * rook_count
          + kQueenMaterial * queen_count;
 }
+
+template<Color::Underlying kColor, bool kEnableTracing>
+auto evaluate_pawns(const Position& pos, tuning::EvaluationTrace* eval_trace) -> ScorePair {
+    ScorePair out{};
+
+    for (PieceId id : pos.piece_mask_for(kColor, PieceType::kPawn)) {
+        Square square = pos.info_of(id, kColor).first;
+        if constexpr (kColor == Color::kBlack) {
+            square = square.mirror();
+        }
+
+        out += kPawnPsqt[square];
+        if constexpr (kEnableTracing) {
+            eval_trace->increment_feature<kColor>(tuning::EvalFeature::kPawnPsqt, square);
+        }
+    }
+
+    return out;
+}
+
+template<Color::Underlying kColor, bool kEnableTracing>
+auto evaluate_knights(const Position& pos, tuning::EvaluationTrace* eval_trace) -> ScorePair {
+    ScorePair out{};
+
+    for (PieceId id : pos.piece_mask_for(kColor, PieceType::kKnight)) {
+        Square square = pos.info_of(id, kColor).first;
+        if constexpr (kColor == Color::kBlack) {
+            square = square.mirror();
+        }
+
+        out += kKnightPsqt[square];
+        if constexpr (kEnableTracing) {
+            eval_trace->increment_feature<kColor>(tuning::EvalFeature::kKnightPsqt, square);
+        }
+    }
+
+    return out;
+}
+
+template<Color::Underlying kColor, bool kEnableTracing>
+auto evaluate_bishops(const Position& pos, tuning::EvaluationTrace* eval_trace) -> ScorePair {
+    ScorePair out{};
+
+    for (PieceId id : pos.piece_mask_for(kColor, PieceType::kBishop)) {
+        Square square = pos.info_of(id, kColor).first;
+        if constexpr (kColor == Color::kBlack) {
+            square = square.mirror();
+        }
+
+        out += kBishopPsqt[square];
+        if constexpr (kEnableTracing) {
+            eval_trace->increment_feature<kColor>(tuning::EvalFeature::kBishopPsqt, square);
+        }
+    }
+
+    return out;
+}
+
+template<Color::Underlying kColor, bool kEnableTracing>
+auto evaluate_rooks(const Position& pos, tuning::EvaluationTrace* eval_trace) -> ScorePair {
+    ScorePair out{};
+
+    for (PieceId id : pos.piece_mask_for(kColor, PieceType::kRook)) {
+        Square square = pos.info_of(id, kColor).first;
+        if constexpr (kColor == Color::kBlack) {
+            square = square.mirror();
+        }
+
+        out += kRookPsqt[square];
+        if constexpr (kEnableTracing) {
+            eval_trace->increment_feature<kColor>(tuning::EvalFeature::kRookPsqt, square);
+        }
+    }
+
+    return out;
+}
+
+template<Color::Underlying kColor, bool kEnableTracing>
+auto evaluate_queens(const Position& pos, tuning::EvaluationTrace* eval_trace) -> ScorePair {
+    ScorePair out{};
+
+    for (PieceId id : pos.piece_mask_for(kColor, PieceType::kQueen)) {
+        Square square = pos.info_of(id, kColor).first;
+        if constexpr (kColor == Color::kBlack) {
+            square = square.mirror();
+        }
+
+        out += kQueenPsqt[square];
+        if constexpr (kEnableTracing) {
+            eval_trace->increment_feature<kColor>(tuning::EvalFeature::kQueenPsqt, square);
+        }
+    }
+
+    return out;
+}
+
+template<Color::Underlying kColor, bool kEnableTracing>
+auto evaluate_king(const Position& pos, tuning::EvaluationTrace* eval_trace) -> ScorePair {
+    ScorePair out{};
+
+    Square square = pos.king_square(kColor);
+    if constexpr (kColor == Color::kBlack) {
+        square = square.mirror();
+    }
+
+    out += kKingPsqt[square];
+
+    if constexpr (kEnableTracing) {
+        eval_trace->increment_feature<kColor>(tuning::EvalFeature::kKingPsqt, square);
+    }
+
+    return out;
+}
+
 }  // namespace
 
 template<bool kEnableTracing>
@@ -54,6 +168,19 @@ auto evaluate(const Position& pos, tuning::EvaluationTrace* eval_trace) -> Score
     out += evaluate_material<Color::kWhite, kEnableTracing>(pos, eval_trace);
     out -= evaluate_material<Color::kBlack, kEnableTracing>(pos, eval_trace);
 
+    out += evaluate_pawns<Color::kWhite, kEnableTracing>(pos, eval_trace);
+    out += evaluate_knights<Color::kWhite, kEnableTracing>(pos, eval_trace);
+    out += evaluate_bishops<Color::kWhite, kEnableTracing>(pos, eval_trace);
+    out += evaluate_rooks<Color::kWhite, kEnableTracing>(pos, eval_trace);
+    out += evaluate_queens<Color::kWhite, kEnableTracing>(pos, eval_trace);
+    out += evaluate_king<Color::kWhite, kEnableTracing>(pos, eval_trace);
+
+    out -= evaluate_pawns<Color::kBlack, kEnableTracing>(pos, eval_trace);
+    out -= evaluate_knights<Color::kBlack, kEnableTracing>(pos, eval_trace);
+    out -= evaluate_bishops<Color::kBlack, kEnableTracing>(pos, eval_trace);
+    out -= evaluate_rooks<Color::kBlack, kEnableTracing>(pos, eval_trace);
+    out -= evaluate_queens<Color::kBlack, kEnableTracing>(pos, eval_trace);
+    out -= evaluate_king<Color::kBlack, kEnableTracing>(pos, eval_trace);
     return out.taper(24);
 }
 

@@ -22,18 +22,26 @@
 
 namespace kerosene::tuning {
 
+constexpr usize kPsqtCount = 64;
+
 enum class EvalFeature {
     kPawnMaterial,
     kKnightMaterial,
     kBishopMaterial,
     kRookMaterial,
     kQueenMaterial,
-    kNb,
+    kPawnPsqt,
+    kKnightPsqt = kPawnPsqt + kPsqtCount,
+    kBishopPsqt = kKnightPsqt + kPsqtCount,
+    kRookPsqt   = kBishopPsqt + kPsqtCount,
+    kQueenPsqt  = kRookPsqt + kPsqtCount,
+    kKingPsqt   = kQueenPsqt + kPsqtCount,
+    kNb         = kKingPsqt + kPsqtCount,
 };
 
 constexpr usize kFeatureCount = static_cast<usize>(EvalFeature::kNb);
 
-template <typename V>
+template<typename V>
 class FeatureMap {
 public:
     using Array = std::array<V, kFeatureCount>;
@@ -48,6 +56,16 @@ public:
     auto feature(EvalFeature eval_feat) const -> const V& {
         const V& feat = m_underlying[static_cast<usize>(eval_feat)];
         return feat;
+    }
+
+    auto feature(EvalFeature eval_feat, Square square) -> V& {
+        usize idx = static_cast<usize>(eval_feat) + square;
+        return feature(idx);
+    }
+
+    auto feature(EvalFeature eval_feat, Square square) const -> const V& {
+        usize idx = static_cast<usize>(eval_feat) + square;
+        return feature(idx);
     }
 
     auto feature(usize raw_feature_idx) -> V& {

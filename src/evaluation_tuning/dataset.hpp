@@ -18,9 +18,10 @@
 
 #pragma once
 
+#include "../position.hpp"
 #include "../util/integer_types.hpp"
+#include "evaluation_trace.hpp"
 #include <optional>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -46,8 +47,9 @@ constexpr auto parse(Result r) -> f64 {
 }
 
 struct DatasetEntry {
-    std::string fen;
-    Result      result{};
+    EvaluationTrace X_i;
+    i32             phase{};
+    Result          result{};
 };
 
 using Dataset = std::vector<DatasetEntry>;

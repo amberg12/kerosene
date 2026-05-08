@@ -18,11 +18,9 @@
 
 #include "move_picker.hpp"
 
-#include <utility>
-
 namespace kerosene {
 
-auto MovePicker::next_move() -> Move {
+auto MovePicker::next_move(bool skip_quiets) -> Move {
     switch (m_stage) {
     case kGenerateMoves: {
         m_moves = generate_legal_moves(m_pos);
@@ -54,16 +52,23 @@ auto MovePicker::next_move() -> Move {
     }
 
     case kEmitMoves: {
-        if (m_emit_idx == m_moves.size()) {
+        if (m_emit_idx >= m_moves.size()) {
             return kNullMove;
         }
 
-        usize best_idx = m_emit_idx;
+        usize best_idx = m_moves.size();
+        for (usize idx = m_emit_idx; idx < m_moves.size(); ++idx) {
+            if (skip_quiets && !m_pos.is_capture(m_moves[idx])) {
+                continue;
+            }
 
-        for (usize idx = m_emit_idx + 1; idx < m_moves.size(); ++idx) {
-            if (m_scores[idx] > m_scores[best_idx]) {
+            if (best_idx == m_moves.size() || m_scores[idx] > m_scores[best_idx]) {
                 best_idx = idx;
             }
+        }
+
+        if (best_idx == m_moves.size()) {
+            return kNullMove;
         }
 
         std::swap(m_moves[m_emit_idx], m_moves[best_idx]);

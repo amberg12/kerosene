@@ -242,16 +242,22 @@ auto Position::pin_rays() const -> BitBoard {
 
 auto Position::is_capture(Move move) const -> bool {
     return move.special_type() == Move::kEnPassant
-        || piece_at(move.dst()).color() != m_side_to_move;
+        || (!piece_at(move.dst()).empty() && piece_at(move.dst()).color() != m_side_to_move);
 }
 
 auto Position::make_move(Move move) -> void {
+    Piece mover          = piece_at(move.src());
+    Piece captured_piece = move.special_type() == Move::kEnPassant
+                           ? Piece{~m_side_to_move, PieceType::kPawn}
+                           : piece_at(move.dst());
+    bool is_pawn_move = mover.piece_type() == PieceType::kPawn;
+    bool is_capture   = !captured_piece.empty() && captured_piece.color() != m_side_to_move;
+
     m_en_passant_target_square = Square::kInvalid;
 
     switch (move.special_type()) {
     case Move::kNormal: {
         Piece target = piece_at(move.dst());
-        Piece mover  = piece_at(move.src());
         if (!target.empty()) {
             delete_piece(move.dst());
         }
@@ -318,10 +324,6 @@ auto Position::make_move(Move move) -> void {
     if (move.src() == Square::kA8 || move.dst() == Square::kA8) {
         m_castling_rights.del_castling_rights(CastlingRights::kBlackQSide);
     }
-
-    bool is_pawn_move = piece_at(move.src()).piece_type() == PieceType::kPawn;
-    bool is_capture =
-      !piece_at(move.dst()).empty() && piece_at(move.dst()).color() != m_side_to_move;
 
     if (is_pawn_move || is_capture) {
         m_move_rule = 0;

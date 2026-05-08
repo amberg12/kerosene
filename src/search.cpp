@@ -55,12 +55,17 @@ auto Searcher::begin_search(TimeParameters time_parameters) -> void {
 }
 
 auto Searcher::iterative_deepening() -> void {
+    Move best_move = generate_legal_moves(m_root_position).front();
+
     for (i32 depth = 1; depth < kMaxDepth; ++depth) {
-        Score score = search<NodeType::kRoot>(m_root_position, depth, kNegativeInf, kPositiveInf, 0);
+        Score score =
+          search<NodeType::kRoot>(m_root_position, depth, kNegativeInf, kPositiveInf, 0);
 
         if (m_time_manager.stop()) {
             break;
         }
+
+        best_move = m_best_move;
 
         std::string score_string = is_mate(score) ? "mate" : "cp";
 
@@ -71,7 +76,62 @@ auto Searcher::iterative_deepening() -> void {
         std::println("info depth {} score {} {}", depth, score_string, score);
     }
 
-    std::println("bestmove {}", m_best_move.to_string());
+    std::println("bestmove {}", best_move.to_string());
+}
+
+template<NodeType kNodeType>
+auto Searcher::quiesce(const Position& position, Score alpha, Score beta, i32 ply) -> Score {
+    if (m_time_manager.stop()) {
+        return 0;
+    }
+
+    MovePicker mp{position};
+
+    Score best_score           = kNegativeInf;
+    i32   searched_legal_moves = 0;
+    bool  skip_quiets          = false;
+
+    if (position.checkers_nb() == 0) {
+        skip_quiets = true;
+        best_score  = evaluate(position);
+
+        if (best_score >= beta) {
+            return best_score;
+        }
+
+        if (best_score > alpha) {
+            alpha = best_score;
+        }
+    }
+
+    for (Move move = mp.next_move(skip_quiets); move; move = mp.next_move(skip_quiets)) {
+        ++searched_legal_moves;
+
+        Position child_position{position, move};
+        Score score = -quiesce<NodeType::kNonPv>(child_position, -beta, -alpha, ply + 1);
+
+        if (m_time_manager.stop()) {
+            return 0;
+        }
+
+        if (score > best_score) {
+            best_score = score;
+
+            if (score > alpha) {
+                alpha = score;
+            }
+        }
+
+        if (score >= beta) {
+            break;
+        }
+    }
+
+    if (searched_legal_moves == 0) {
+        return position.checkers_nb() == 0 ? best_score : mated_in(ply);
+    }
+
+    return best_score;
 }
 
 template<NodeType kNodeType>
@@ -82,7 +142,7 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
     }
 
     if (depth <= 0) {
-        return evaluate(position);
+        return quiesce<kNodeType>(position, alpha, beta, ply);
     }
 
     MovePicker mp{position};
@@ -103,7 +163,7 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
 
         if (score > best_score) {
             best_score = score;
-            best_move = move;
+            best_move  = move;
 
             if (score > alpha) {
                 alpha = score;

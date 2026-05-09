@@ -33,13 +33,15 @@ set(SRCS
         src/evaluation_tuning/sgdm.cpp
         src/evaluation_tuning/sgdm.hpp
         src/evaluation_constants.hpp
+        src/move_picker.cpp
+        src/move_picker.hpp
+        src/zobrist.cpp
+        src/zobrist.hpp
 )
 
 add_executable(Kerosene
         src/main.cpp
         ${SRCS}
-        src/move_picker.cpp
-        src/move_picker.hpp
 )
 
 add_executable(KeroseneTuning

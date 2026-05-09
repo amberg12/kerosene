@@ -16,19 +16,22 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <memory>
-#include "uci.hpp"
+#pragma once
+#include "types.hpp"
+#include "util/integer_types.hpp"
 
-using namespace kerosene;
+namespace kerosene {
+class CastlingRights;
 
-auto main(int argc, char* argv[]) -> int {
-    init_zobrist();
+using ZKey = u64;
 
-    auto uci = std::make_unique<Uci>();
+// Using an alternate method like a singleton to handle the zobrist keys seems to come up with some
+// awful assembly.
+auto init_zobrist() -> void;
 
-    if (argc > 1) {
-        uci->cli(argc, argv);
-    } else {
-        uci->loop();
-    }
+auto z_key_piece_square(Piece piece, Square square) -> ZKey;
+auto z_key_side_to_move() -> ZKey;
+auto z_key_en_passant_file(i8 file) -> ZKey;
+auto z_key_castling_rights(const CastlingRights& castling_rights) -> ZKey;
+
 }

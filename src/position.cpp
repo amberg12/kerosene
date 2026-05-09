@@ -63,6 +63,7 @@ Position::Position(const Position& parent, Move move) :
     m_mail_box(parent.m_mail_box),
     m_piece_list(parent.m_piece_list),
     m_bit_boards(parent.m_bit_boards),
+    m_key(parent.m_key),
     m_side_to_move(parent.m_side_to_move),
     m_move_rule(parent.m_move_rule),
     m_castling_rights(parent.m_castling_rights),
@@ -103,6 +104,10 @@ auto Position::parse(std::string_view fen) -> Position {
 
     out.m_side_to_move = Color::parse(color);
 
+    if (out.m_side_to_move == Color::kBlack) {
+        out.m_key ^= z_key_side_to_move();
+    }
+
     for (char c : castling_rights) {
         switch (c) {
         case 'K':
@@ -122,7 +127,13 @@ auto Position::parse(std::string_view fen) -> Position {
         }
     }
 
+    out.m_key ^= z_key_castling_rights(out.m_castling_rights);
+
     out.m_en_passant_target_square = Square::parse(en_passant).value_or(Square::kInvalid);
+
+    if (out.m_en_passant_target_square != Square::kInvalid) {
+        out.m_key ^= z_key_en_passant_file(out.m_en_passant_target_square.file());
+    }
 
     out.m_move_rule = std::stoi(move_rule);
 
@@ -245,13 +256,21 @@ auto Position::is_capture(Move move) const -> bool {
         || (!piece_at(move.dst()).empty() && piece_at(move.dst()).color() != m_side_to_move);
 }
 
+auto Position::hash() const -> ZKey {
+    return m_key;
+}
+
 auto Position::make_move(Move move) -> void {
     Piece mover          = piece_at(move.src());
     Piece captured_piece = move.special_type() == Move::kEnPassant
                            ? Piece{~m_side_to_move, PieceType::kPawn}
                            : piece_at(move.dst());
-    bool is_pawn_move = mover.piece_type() == PieceType::kPawn;
-    bool is_capture   = !captured_piece.empty() && captured_piece.color() != m_side_to_move;
+    bool  is_pawn_move   = mover.piece_type() == PieceType::kPawn;
+    bool  is_capture     = !captured_piece.empty() && captured_piece.color() != m_side_to_move;
+
+    if (m_en_passant_target_square != Square::kInvalid) {
+        m_key ^= z_key_en_passant_file(m_en_passant_target_square.file());
+    }
 
     m_en_passant_target_square = Square::kInvalid;
 
@@ -266,6 +285,7 @@ auto Position::make_move(Move move) -> void {
             if (std::abs(move.src().rank() - move.dst().rank()) == 2) {
                 auto pawn_direction        = Direction::pawn_direction(side_to_move());
                 m_en_passant_target_square = move.src() + pawn_direction;
+                m_key ^= z_key_en_passant_file(m_en_passant_target_square.file());
             }
         }
 
@@ -305,6 +325,8 @@ auto Position::make_move(Move move) -> void {
     }
     }
 
+    m_key ^= z_key_castling_rights(m_castling_rights);
+
     if (piece_at(move.dst()).piece_type() == PieceType::kKing) {
         m_castling_rights.del_castling_rights(CastlingRights::from_color(m_side_to_move));
     }
@@ -331,12 +353,17 @@ auto Position::make_move(Move move) -> void {
         ++m_move_rule;
     }
 
+    m_key ^= z_key_castling_rights(m_castling_rights);
+
     m_side_to_move = ~m_side_to_move;
+    m_key ^= z_key_side_to_move();
 }
 
 auto Position::add_piece(Square at, Piece to) -> void {
     PieceId piece_id = m_piece_list[to.color()].add_piece(at, to);
     Tile    tile{piece_id, to};
+
+    m_key ^= z_key_piece_square(to, at);
 
     m_mail_box[at] = tile;
     m_bit_boards[to.color()][to.piece_type()].set_square(at);
@@ -345,6 +372,9 @@ auto Position::add_piece(Square at, Piece to) -> void {
 auto Position::move_piece(Square src, Square dst) -> void {
     Tile tile              = tile_at(src);
     auto [piece_id, piece] = tile.unpack();
+
+    m_key ^= z_key_piece_square(piece, src);
+    m_key ^= z_key_piece_square(piece, dst);
 
     m_mail_box[dst] = tile;
     m_mail_box[src] = Tile{};
@@ -356,6 +386,8 @@ auto Position::move_piece(Square src, Square dst) -> void {
 auto Position::delete_piece(Square at) -> void {
     auto [piece_id, piece] = tile_at(at).unpack();
 
+    m_key ^= z_key_piece_square(piece, at);
+
     m_piece_list[piece.color()].delete_piece(piece_id);
     m_mail_box[at] = Tile{};
     m_bit_boards[piece.color()][piece.piece_type()].unset_square(at);
@@ -363,9 +395,13 @@ auto Position::delete_piece(Square at) -> void {
 
 auto Position::mutate_piece(Square at, PieceType to) -> void {
     auto [piece_id, piece] = tile_at(at).unpack();
+    Piece to_piece{piece.color(), to};
+
+    m_key ^= z_key_piece_square(piece, at);
+    m_key ^= z_key_piece_square(to_piece, at);
 
     m_piece_list[piece.color()].mutate_piece(piece_id, to);
-    m_mail_box[at] = Tile{piece_id, {piece.color(), to}};
+    m_mail_box[at] = Tile{piece_id, to_piece};
     m_bit_boards[piece.color()][piece.piece_type()].unset_square(at);
     m_bit_boards[piece.color()][to].set_square(at);
 }

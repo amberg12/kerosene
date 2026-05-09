@@ -17,12 +17,12 @@
  */
 
 #pragma once
+#include "util/integer_types.hpp"
 #include <array>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
-#include "util/integer_types.hpp"
 
 namespace kerosene {
 
@@ -357,6 +357,10 @@ public:
 
     /* implicit */ Piece(Underlying raw) :
         m_raw(raw) {
+    }
+
+    explicit constexpr operator usize() const {
+        return m_raw;
     }
 
     [[nodiscard]] constexpr static auto parse(char c) -> Piece {

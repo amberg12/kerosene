@@ -25,6 +25,7 @@
 #include "move.hpp"
 #include "types.hpp"
 #include "util/bits.hpp"
+#include "zobrist.hpp"
 
 namespace kerosene {
 
@@ -325,6 +326,8 @@ public:
     [[nodiscard]] auto pin_rays() const -> BitBoard;
 
     [[nodiscard]] auto is_capture(Move move) const -> bool;
+
+    [[nodiscard]] auto hash() const -> ZKey;
 private:
     Position() = default;
 
@@ -351,6 +354,8 @@ private:
     ColorMap<PieceTypeMap<BitBoard>> m_bit_boards{};
 
     BitBoard m_pin_rays{};
+
+    ZKey m_key{};
 
     Color          m_side_to_move{Color::kWhite};
     u8             m_move_rule{0};

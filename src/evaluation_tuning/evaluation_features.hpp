@@ -31,12 +31,16 @@ enum class EvalFeature {
     kRookMaterial,
     kQueenMaterial,
     kPawnPsqt,
-    kKnightPsqt = kPawnPsqt + kPsqtCount,
-    kBishopPsqt = kKnightPsqt + kPsqtCount,
-    kRookPsqt   = kBishopPsqt + kPsqtCount,
-    kQueenPsqt  = kRookPsqt + kPsqtCount,
-    kKingPsqt   = kQueenPsqt + kPsqtCount,
-    kNb         = kKingPsqt + kPsqtCount,
+    kKnightPsqt     = kPawnPsqt + kPsqtCount,
+    kBishopPsqt     = kKnightPsqt + kPsqtCount,
+    kRookPsqt       = kBishopPsqt + kPsqtCount,
+    kQueenPsqt      = kRookPsqt + kPsqtCount,
+    kKingPsqt       = kQueenPsqt + kPsqtCount,
+    kMobilityKnight = kKingPsqt + kPsqtCount,
+    kMobilityBishop = kMobilityKnight + 9,
+    kMobilityRook   = kMobilityBishop + 14,
+    kMobilityQueen  = kMobilityRook + 15,
+    kNb             = kMobilityQueen + 28,
 };
 
 constexpr usize kFeatureCount = static_cast<usize>(EvalFeature::kNb);
@@ -65,6 +69,16 @@ public:
 
     auto feature(EvalFeature eval_feat, Square square) const -> const V& {
         usize idx = static_cast<usize>(eval_feat) + square;
+        return feature(idx);
+    }
+
+    auto feature(EvalFeature eval_feat, i32 offset) -> V& {
+        usize idx = static_cast<usize>(eval_feat) + offset;
+        return feature(idx);
+    }
+
+    auto feature(EvalFeature eval_feat, i32 offset) const -> const V& {
+        usize idx = static_cast<usize>(eval_feat) + offset;
         return feature(idx);
     }
 

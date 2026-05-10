@@ -175,6 +175,18 @@ public:
         return out;
     }
 
+    [[nodiscard]] constexpr auto mobility_of(PieceId piece_id) const -> i32 {
+        i32 out{};
+
+        for (PieceMask mask : m_word_board) {
+            if (mask.has_id(piece_id)) {
+                ++out;
+            }
+        }
+
+        return out;
+    }
+
 private:
     std::array<PieceMask, 64> m_word_board;
 };
@@ -319,6 +331,8 @@ public:
     [[nodiscard]] auto phase() const -> i32;
 
     [[nodiscard]] auto attacked_by(Color color, PieceId id) const -> BitBoard;
+
+    [[nodiscard]] auto mobility_of(Color color, PieceId piece_id) const -> i32;
 
     [[nodiscard]] auto king_square(Color side_to_move) const -> Square;
     [[nodiscard]] auto king_square() const -> Square;

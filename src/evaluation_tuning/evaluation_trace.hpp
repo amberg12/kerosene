@@ -51,6 +51,15 @@ public:
             feature(eval_feat, square) -= by;
         }
     }
+
+    template <Color::Underlying kColor>
+    auto increment_feature(EvalFeature eval_feat, i32 offset, i32 by) -> void {
+        if (kColor == Color::kWhite) {
+            feature(eval_feat, offset) += by;
+        } else {
+            feature(eval_feat, offset) -= by;
+        }
+    }
 };
 
 }  // namespace kerosene::tuning

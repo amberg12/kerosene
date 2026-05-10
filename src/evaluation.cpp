@@ -76,8 +76,15 @@ auto evaluate_knights(const Position& pos, tuning::EvaluationTrace* eval_trace) 
         }
 
         out += kKnightPsqt[square];
+
+        i32 mobility_offset = pos.mobility_of(kColor, id);
+
+        out += kMobilityKnight[mobility_offset];
+
         if constexpr (kEnableTracing) {
             eval_trace->increment_feature<kColor>(tuning::EvalFeature::kKnightPsqt, square);
+            eval_trace->increment_feature<kColor>(tuning::EvalFeature::kMobilityKnight,
+                                                  mobility_offset, 1);
         }
     }
 
@@ -95,8 +102,15 @@ auto evaluate_bishops(const Position& pos, tuning::EvaluationTrace* eval_trace) 
         }
 
         out += kBishopPsqt[square];
+
+        i32 mobility_offset = pos.mobility_of(kColor, id);
+
+        out += kMobilityBishop[mobility_offset];
+
         if constexpr (kEnableTracing) {
             eval_trace->increment_feature<kColor>(tuning::EvalFeature::kBishopPsqt, square);
+            eval_trace->increment_feature<kColor>(tuning::EvalFeature::kMobilityBishop,
+                                                  mobility_offset, 1);
         }
     }
 
@@ -114,8 +128,15 @@ auto evaluate_rooks(const Position& pos, tuning::EvaluationTrace* eval_trace) ->
         }
 
         out += kRookPsqt[square];
+
+        i32 mobility_offset = pos.mobility_of(kColor, id);
+
+        out += kMobilityRook[mobility_offset];
+
         if constexpr (kEnableTracing) {
             eval_trace->increment_feature<kColor>(tuning::EvalFeature::kRookPsqt, square);
+            eval_trace->increment_feature<kColor>(tuning::EvalFeature::kMobilityRook,
+                                                  mobility_offset, 1);
         }
     }
 
@@ -133,8 +154,15 @@ auto evaluate_queens(const Position& pos, tuning::EvaluationTrace* eval_trace) -
         }
 
         out += kQueenPsqt[square];
+
+        i32 mobility_offset = pos.mobility_of(kColor, id);
+
+        out += kMobilityQueen[mobility_offset];
+
         if constexpr (kEnableTracing) {
             eval_trace->increment_feature<kColor>(tuning::EvalFeature::kQueenPsqt, square);
+            eval_trace->increment_feature<kColor>(tuning::EvalFeature::kMobilityQueen,
+                                                  mobility_offset, 1);
         }
     }
 

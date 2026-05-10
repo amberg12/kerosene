@@ -17,15 +17,14 @@
  */
 
 #include "sgdm.hpp"
-#include "../evaluation.hpp"
 #include "../evaluation_constants.hpp"
 #include "../position.hpp"
 #include "evaluation_features.hpp"
 #include "evaluation_trace.hpp"
-
 #include <cmath>
 #include <print>
 #include <random>
+#include <span>
 
 namespace kerosene::tuning {
 constexpr i32 kResultScale = 650;
@@ -58,6 +57,16 @@ auto descale_score(Score score) -> f64 {
     }                                                                              \
     std::println("}}}};");                                                         \
     std::println("// clang-format on\n");
+
+#define KEROSENE_PRINT_ARRAY(table, feat, amount)                                     \
+    {                                                                                 \
+        std::println("constexpr std::array<ScorePair, {}> " #feat " = {{{{", amount); \
+        for (i32 i = 0; i < amount; ++i) {                                            \
+            auto f = table.feature(static_cast<usize>(feat) + i);                     \
+            std::print("{{{}, {}}}, ", scale_score(f.mg), scale_score(f.eg));         \
+        }                                                                             \
+        std::println("}}}};");                                                        \
+    }
 
 template<typename T>
 struct Phase {
@@ -92,6 +101,15 @@ public:
               Phase{descale_score(score_pair.mg), descale_score(score_pair.eg)};
         }
     }
+
+    auto load_feature(EvalFeature feat, std::span<const ScorePair> score_pairs) -> void {
+        for (usize i = 0; i < score_pairs.size(); ++i) {
+            ScorePair score_pair = score_pairs[i];
+
+            feature(static_cast<usize>(feat) + i) =
+              Phase{descale_score(score_pair.mg), descale_score(score_pair.eg)};
+        }
+    }
 };
 
 // Taken from the video on sarah, https://www.youtube.com/watch?v=QzS8HQ3dVWA
@@ -110,6 +128,10 @@ auto sgdm(Dataset& dataset, i32 epochs, f64 lr, i32 batch_size, f64 lambda) -> v
     W.load_feature(EvalFeature::kRookPsqt, evaluation_constants::kRookPsqt);
     W.load_feature(EvalFeature::kQueenPsqt, evaluation_constants::kQueenPsqt);
     W.load_feature(EvalFeature::kKingPsqt, evaluation_constants::kKingPsqt);
+    W.load_feature(EvalFeature::kMobilityKnight, evaluation_constants::kMobilityKnight);
+    W.load_feature(EvalFeature::kMobilityBishop, evaluation_constants::kMobilityBishop);
+    W.load_feature(EvalFeature::kMobilityRook, evaluation_constants::kMobilityRook);
+    W.load_feature(EvalFeature::kMobilityQueen, evaluation_constants::kMobilityQueen);
 
     FeatureMap<Phase<f64>> gradient_phase{};
     FeatureMap<Phase<f64>> W_phase_prev = W;
@@ -248,6 +270,10 @@ auto sgdm(Dataset& dataset, i32 epochs, f64 lr, i32 batch_size, f64 lambda) -> v
         KEROSENE_PRINT_PSQT(W, kRookPsqt);
         KEROSENE_PRINT_PSQT(W, kQueenPsqt);
         KEROSENE_PRINT_PSQT(W, kKingPsqt);
+        KEROSENE_PRINT_ARRAY(W, kMobilityKnight, 9);
+        KEROSENE_PRINT_ARRAY(W, kMobilityBishop, 14);
+        KEROSENE_PRINT_ARRAY(W, kMobilityRook, 15);
+        KEROSENE_PRINT_ARRAY(W, kMobilityQueen, 28);
     }
 }
 }  // namespace kerosene::tuning

@@ -232,6 +232,10 @@ auto Position::attacked_by(Color color, PieceId id) const -> BitBoard {
     return m_attack_table[color].attacked_by(id);
 }
 
+auto Position::mobility_of(Color side_to_move, PieceId piece_id) const -> i32 {
+    return m_attack_table[side_to_move].mobility_of(piece_id);
+}
+
 auto Position::king_square(Color side_to_move) const -> Square {
     auto [square, piece_type] = info_of(PieceId::king(), side_to_move);
     return square;

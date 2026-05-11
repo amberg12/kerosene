@@ -46,6 +46,7 @@ set(SRCS
 add_executable(Kerosene
         src/main.cpp
         ${SRCS}
+        src/history.hpp
 )
 
 add_executable(KeroseneTuning

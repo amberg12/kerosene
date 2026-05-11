@@ -438,6 +438,12 @@ public:
         }
     }
 
+    [[nodiscard]] constexpr auto compressed_idx() const -> usize {
+        usize raw = m_raw;
+
+        return (raw & 0b111) - 1 + (raw >> 3) * 6;
+    }
+
     [[nodiscard]] auto empty() const -> bool {
         return m_raw == kEmpty;
     }

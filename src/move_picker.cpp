@@ -20,7 +20,8 @@
 
 namespace kerosene {
 namespace {
-constexpr i32 kTtMove = 900'000'000;
+constexpr i32 kTtMove   = 900'000'000;
+constexpr i32 kLoudMove = 800'000'000;
 }
 
 auto MovePicker::next_move(bool skip_quiets) -> Move {
@@ -45,10 +46,10 @@ auto MovePicker::next_move(bool skip_quiets) -> Move {
 
                 PieceType attacker = m_pos.piece_at(move.src()).piece_type();
 
-                m_scores.emplace_back(static_cast<usize>(victim) * 20
+                m_scores.emplace_back(kLoudMove + static_cast<usize>(victim) * 20
                                       - static_cast<usize>(attacker));
             } else {
-                m_scores.emplace_back(0);
+                m_scores.emplace_back(m_history.read_quiet_history(m_pos, move));
             }
         }
 
@@ -65,7 +66,7 @@ auto MovePicker::next_move(bool skip_quiets) -> Move {
         for (usize idx = m_emit_idx; idx < m_moves.size(); ++idx) {
             if (skip_quiets
                 && !(m_pos.is_capture(m_moves[idx])
-                    || m_moves[idx].special_type() == Move::kPromotion)) {
+                     || m_moves[idx].special_type() == Move::kPromotion)) {
                 continue;
             }
 

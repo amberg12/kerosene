@@ -53,12 +53,15 @@ auto Searcher::set_position(const Position& root_position, const RepetitionTable
 }
 
 auto Searcher::begin_search(TimeParameters time_parameters) -> void {
+    m_history = History{}; // TODO: remove - we would rather have a malus scheme over aging.
+
     m_time_manager = TimeManager{m_root_position.side_to_move(), time_parameters};
     iterative_deepening();
 }
 
 auto Searcher::new_game() -> void {
     m_tt.clear();
+    m_history = History{};
 }
 
 auto Searcher::iterative_deepening() -> void {
@@ -96,7 +99,7 @@ auto Searcher::quiesce(const Position& position, Score alpha, Score beta, i32 pl
         return 0;
     }
 
-    MovePicker mp{position, kNullMove};
+    MovePicker mp{position, kNullMove, m_history};
 
     Score best_score           = kNegativeInf;
     i32   searched_legal_moves = 0;
@@ -169,7 +172,7 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
 
     Move tt_move = get_node_info<kNodeType>().is_root ? m_best_move : tt ? tt->move : kNullMove;
 
-    MovePicker mp{position, tt_move};
+    MovePicker mp{position, tt_move, m_history};
 
     Move  best_move            = kNullMove;
     Score best_score           = kNegativeInf;
@@ -177,6 +180,8 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
 
     for (Move move = mp.next_move(); move; move = mp.next_move()) {
         ++searched_legal_moves;
+
+        bool is_loud = position.is_capture(move) || move.special_type() == Move::kPromotion;
 
         Position child_position{position, move};
         m_repetition_table.push(child_position);
@@ -199,6 +204,10 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
         }
 
         if (score >= beta) {
+            if (!is_loud) {
+                m_history.update_quiet_history(position, depth, move);
+            }
+
             break;
         }
     }

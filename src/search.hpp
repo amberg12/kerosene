@@ -17,6 +17,7 @@
  */
 
 #pragma once
+#include "history.hpp"
 #include "position.hpp"
 #include "repetition_table.hpp"
 #include "score.hpp"
@@ -53,6 +54,7 @@ private:
     Position           m_root_position = Position::parse(kStartPos);
     RepetitionTable    m_repetition_table{};
     TranspositionTable m_tt{};
+    History            m_history{};
 
     TimeManager m_time_manager;
     Move        m_best_move;

@@ -2,3 +2,5 @@
 /builds/
 /config.json
 /out.pgn
+/**/.venv
+/**/*.pgn

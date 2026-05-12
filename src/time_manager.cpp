@@ -30,7 +30,9 @@ TimeManager::TimeManager(Color side_to_move, TimeParameters time_parameters) {
 }
 
 auto TimeManager::stop() const -> bool {
-    return time::Clock::now() > m_start_time + m_time_limit;
+    using namespace std::chrono_literals;
+
+    return time::Clock::now() > m_start_time + m_time_limit + 20ms;
 }
 
 }

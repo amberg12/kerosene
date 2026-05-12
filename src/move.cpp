@@ -28,7 +28,7 @@ auto Move::parse(const std::string& move, const Position& context) -> Move {
         return Move::create_promotion(src, dst, PieceType::parse(move[4]));
     }
 
-    if (context.en_passant() == dst) {
+    if (context.piece_at(src).piece_type() == PieceType::kPawn && context.en_passant() == dst) {
         return Move::create_en_passant(src, dst);
     }
 

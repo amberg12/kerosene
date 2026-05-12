@@ -53,7 +53,7 @@ auto Searcher::set_position(const Position& root_position, const RepetitionTable
 }
 
 auto Searcher::begin_search(TimeParameters time_parameters) -> void {
-    m_history = History{}; // TODO: remove - we would rather have a malus scheme over aging.
+    m_history = History{};  // TODO: remove - we would rather have a malus scheme over aging.
 
     m_time_manager = TimeManager{m_root_position.side_to_move(), time_parameters};
     iterative_deepening();
@@ -61,11 +61,13 @@ auto Searcher::begin_search(TimeParameters time_parameters) -> void {
 
 auto Searcher::new_game() -> void {
     m_tt.clear();
-    m_history = History{};
+    m_history   = History{};
+    m_best_move = kNullMove;
 }
 
 auto Searcher::iterative_deepening() -> void {
-    Move best_move = generate_legal_moves(m_root_position).front();
+    MoveList emergency_moves = generate_legal_moves(m_root_position);
+    m_best_move =emergency_moves.front();
 
     for (i32 depth = 1; depth < kMaxDepth; ++depth) {
         Score score =
@@ -74,8 +76,6 @@ auto Searcher::iterative_deepening() -> void {
         if (m_time_manager.stop()) {
             break;
         }
-
-        best_move = m_best_move;
 
         std::string score_string = is_mate(score) ? "mate" : "cp";
 
@@ -86,7 +86,7 @@ auto Searcher::iterative_deepening() -> void {
         std::println("info depth {} score {} {}", depth, score_string, score);
     }
 
-    std::println("bestmove {}", best_move.to_string());
+    std::println("bestmove {}", m_best_move.to_string());
 }
 
 template<NodeType kNodeType>
@@ -124,7 +124,7 @@ auto Searcher::quiesce(const Position& position, Score alpha, Score beta, i32 pl
         Position child_position{position, move};
         m_repetition_table.push(child_position);
 
-        Score    score = -quiesce<NodeType::kNonPv>(child_position, -beta, -alpha, ply + 1);
+        Score score = -quiesce<NodeType::kNonPv>(child_position, -beta, -alpha, ply + 1);
 
         m_repetition_table.pop();
 
@@ -168,7 +168,7 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
         return quiesce<kNodeType>(position, alpha, beta, ply);
     }
 
-    Stack& ss = m_ss[ply];
+    Stack& ss            = m_ss[ply];
     m_ss[ply + 1].killer = kNullMove;
 
     std::optional<TData> tt = m_tt.probe(position);

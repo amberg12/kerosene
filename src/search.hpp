@@ -26,6 +26,8 @@
 
 namespace kerosene {
 
+using Nodes = u64;
+
 class Searcher {
 public:
     Searcher() = default;
@@ -36,6 +38,10 @@ public:
     auto begin_search(TimeParameters time_parameters) -> void;
 
     auto new_game() -> void;
+
+    [[nodiscard]] auto nodes() const -> Nodes {
+        return m_nodes;
+    }
 
 private:
     template<bool kIsPv, bool kIsRoot, typename N>
@@ -69,6 +75,8 @@ private:
 
     template<typename N>
     auto search(const Position& position, i32 depth, Score alpha, Score beta, i32 ply) -> Score;
+
+    Nodes m_nodes{};
 
     Position               m_root_position = Position::parse(kStartPos);
     RepetitionTable        m_repetition_table{};

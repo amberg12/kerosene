@@ -35,6 +35,8 @@ auto Searcher::set_position(const Position& root_position, const RepetitionTable
 }
 
 auto Searcher::begin_search(TimeParameters time_parameters) -> void {
+    m_nodes = 0;
+
     m_history = History{};  // TODO: remove - we would rather have a malus scheme over aging.
 
     m_time_manager = TimeManager{m_root_position.side_to_move(), time_parameters};
@@ -62,6 +64,10 @@ auto Searcher::iterative_deepening() -> void {
         }
 
         std::println("info depth {} score {} {}", depth, score_string, score);
+
+        if (m_time_manager.stop()) {
+            break;
+        }
     }
 
     std::println("bestmove {}", m_best_move.to_string());
@@ -69,6 +75,8 @@ auto Searcher::iterative_deepening() -> void {
 
 template<typename Node>
 auto Searcher::quiesce(const Position& position, Score alpha, Score beta, i32 ply) -> Score {
+    m_nodes++;
+
     if (m_time_manager.stop()) {
         return 0;
     }
@@ -133,6 +141,8 @@ auto Searcher::quiesce(const Position& position, Score alpha, Score beta, i32 pl
 template<typename Node>
 auto Searcher::search(const Position& position, i32 depth, Score alpha, Score beta, i32 ply)
   -> Score {
+    m_nodes++;
+
     if (m_time_manager.stop()) {
         return 0;
     }

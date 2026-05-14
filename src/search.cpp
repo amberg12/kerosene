@@ -51,11 +51,10 @@ auto Searcher::new_game() -> void {
 
 auto Searcher::iterative_deepening() -> void {
     MoveList emergency_moves = generate_legal_moves(m_root_position);
-    m_best_move =emergency_moves.front();
+    m_best_move              = emergency_moves.front();
 
     for (i32 depth = 1; depth < kMaxDepth; ++depth) {
-        Score score =
-          search<Root>(m_root_position, depth, kNegativeInf, kPositiveInf, 0);
+        Score score = search<Root>(m_root_position, depth, kNegativeInf, kPositiveInf, 0);
 
         std::string score_string = is_mate(score) ? "mate" : "cp";
 
@@ -177,7 +176,8 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
         Position child_position{position, move};
         m_repetition_table.push(child_position);
 
-        Score score = -search<typename Node::Next>(child_position, depth - 1, -beta, -alpha, ply + 1);
+        Score score =
+          -search<typename Node::Next>(child_position, depth - 1, -beta, -alpha, ply + 1);
 
         m_repetition_table.pop();
 
@@ -187,9 +187,10 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
 
         if (score > best_score) {
             best_score = score;
-            best_move  = move;
 
             if (score > alpha) {
+                best_move = move;
+
                 if constexpr (Node::is_root) {
                     m_best_move = best_move;
                 }

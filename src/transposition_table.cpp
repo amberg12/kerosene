@@ -43,6 +43,12 @@ auto TranspositionTable::probe(const Position& position) const -> std::optional<
 auto TranspositionTable::write(const Position& position, Move move) const -> void {
     TSlot* slot = ptr(position);
 
+    // If this position had a previous alpha raise, we can trust it's move even if we did not raise
+    // alpha again.
+    if (!move && slot->key == position.hash()) {
+        move = slot->data.move;
+    }
+
     slot->key = position.hash();
     slot->data = {
         .move = move,

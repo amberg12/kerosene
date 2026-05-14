@@ -176,8 +176,16 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
         Position child_position{position, move};
         m_repetition_table.push(child_position);
 
-        Score score =
-          -search<typename Node::Next>(child_position, depth - 1, -beta, -alpha, ply + 1);
+        Score score{};
+        if (searched_legal_moves == 1) {
+            score = -search<typename Node::Next>(child_position, depth - 1, -beta, -alpha, ply + 1);
+        } else {
+            score = -search<NonPv>(child_position, depth - 1, -alpha - 1, -alpha, ply + 1);
+
+            if (score > alpha && Node::is_pv) {
+                score = -search<Pv>(child_position, depth - 1, -beta, -alpha, ply + 1);
+            }
+        }
 
         m_repetition_table.pop();
 

@@ -48,6 +48,11 @@ public:
         return kFile << file;
     }
 
+    constexpr static auto file_triplet(i8 centre) -> BitBoard {
+        return file(static_cast<i8>(std::clamp(centre - 1, 0, 7))) | file(centre)
+             | file(static_cast<i8>(std::clamp(centre + 1, 0, 7)));
+    }
+
     constexpr auto set_square(Square square) -> void {
         BitBoard set_bit_board{square};
         *this |= set_bit_board;

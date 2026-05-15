@@ -27,21 +27,27 @@ auto is_passed_pawn(const Position& pos, Square passer) -> bool = delete;
 template<>
 auto is_passed_pawn<Color::kWhite>(const Position& pos, Square passer) -> bool {
     BitBoard ahead = BitBoard::full() << (8 * (passer.rank() + 1));
-    BitBoard files = BitBoard::file(std::clamp(passer.file() - 1, 0, 7))
-                   | BitBoard::file(std::clamp(static_cast<i32>(passer.file()), 0, 7))
-                   | BitBoard::file(std::clamp(passer.file() + 1, 0, 7));
-
-    return (pos.pieces(Color::kBlack, PieceType::kPawn) & (ahead & files)).pop_count() == 0;
+    return (pos.pieces(Color::kBlack, PieceType::kPawn)
+            & (ahead & BitBoard::file_triplet(passer.file())))
+             .pop_count()
+        == 0;
 }
 
 template<>
 auto is_passed_pawn<Color::kBlack>(const Position& pos, Square passer) -> bool {
     BitBoard ahead = BitBoard::full() >> (8 * (passer.mirror().rank() + 1));
-    BitBoard files = BitBoard::file(std::clamp(passer.file() - 1, 0, 7))
-                   | BitBoard::file(std::clamp(static_cast<i32>(passer.file()), 0, 7))
-                   | BitBoard::file(std::clamp(passer.file() + 1, 0, 7));
 
-    return (pos.pieces(Color::kWhite, PieceType::kPawn) & (ahead & files)).pop_count() == 0;
+    return (pos.pieces(Color::kWhite, PieceType::kPawn)
+            & (ahead & BitBoard::file_triplet(passer.file())))
+             .pop_count()
+        == 0;
+}
+
+template<Color::Underlying kColor>
+auto is_isolated(const Position& pos, Square src) -> bool {
+    auto isolated_field = BitBoard::file_triplet(src.file()) & ~BitBoard::file(src.file());
+    return (pos.pieces(kColor, PieceType::kPawn) & isolated_field).pop_count()
+        == 0;
 }
 
 namespace {
@@ -73,7 +79,7 @@ auto evaluate_pawns(const Position& pos, tuning::EvaluationTrace* eval_trace) ->
     ScorePair out{};
 
     for (PieceId id : pos.piece_mask_for(kColor, PieceType::kPawn)) {
-        Square square = pos.info_of(id, kColor).first;
+        Square square     = pos.info_of(id, kColor).first;
         Square abs_square = pos.info_of(id, kColor).first;
 
         if constexpr (kColor == Color::kBlack) {
@@ -89,7 +95,16 @@ auto evaluate_pawns(const Position& pos, tuning::EvaluationTrace* eval_trace) ->
             out += kPasser[square.rank()];
 
             if constexpr (kEnableTracing) {
-                eval_trace->increment_feature<kColor>(tuning::EvalFeature::kPasser, square.rank(), 1);
+                eval_trace->increment_feature<kColor>(tuning::EvalFeature::kPasser, square.rank(),
+                                                      1);
+            }
+        }
+
+        if (is_isolated<kColor>(pos, abs_square)) {
+            out += kIsolated;
+
+            if constexpr (kEnableTracing) {
+                eval_trace->increment_feature<kColor>(tuning::EvalFeature::kIsolated);
             }
         }
     }

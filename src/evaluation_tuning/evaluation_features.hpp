@@ -41,7 +41,8 @@ enum class EvalFeature {
     kMobilityRook   = kMobilityBishop + 14,
     kMobilityQueen  = kMobilityRook + 15,
     kPasser         = kMobilityQueen + 28,
-    kNb             = kPasser + 8,
+    kIsolated       = kPasser + 8,
+    kNb,
 };
 
 constexpr usize kFeatureCount = static_cast<usize>(EvalFeature::kNb);

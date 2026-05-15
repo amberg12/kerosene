@@ -58,14 +58,14 @@ auto descale_score(Score score) -> f64 {
     std::println("}}}};");                                                         \
     std::println("// clang-format on\n");
 
-#define KEROSENE_PRINT_ARRAY(table, feat, amount)                                     \
-    {                                                                                 \
-        std::println("constexpr std::array<ScorePair, {}> " #feat " = {{{{", amount); \
-        for (i32 i = 0; i < amount; ++i) {                                            \
-            auto f = table.feature(static_cast<usize>(feat) + i);                     \
-            std::print("{{{}, {}}}, ", scale_score(f.mg), scale_score(f.eg));         \
-        }                                                                             \
-        std::println("}}}};");                                                        \
+#define KEROSENE_PRINT_ARRAY(table, feat, amount)                                   \
+    {                                                                               \
+        std::print("constexpr std::array<ScorePair, {}> " #feat " = {{{{", amount); \
+        for (i32 i = 0; i < amount; ++i) {                                          \
+            auto f = table.feature(static_cast<usize>(feat) + i);                   \
+            std::print("{{{}, {}}}, ", scale_score(f.mg), scale_score(f.eg));       \
+        }                                                                           \
+        std::println("}}}};\n");                                                    \
     }
 
 template<typename T>
@@ -133,9 +133,10 @@ auto sgdm(Dataset& dataset, i32 epochs, f64 lr, i32 batch_size, f64 lambda) -> v
     W.load_feature(EvalFeature::kMobilityRook, evaluation_constants::kMobilityRook);
     W.load_feature(EvalFeature::kMobilityQueen, evaluation_constants::kMobilityQueen);
     W.load_feature(EvalFeature::kPasser, evaluation_constants::kPasser);
+    W.load_feature(EvalFeature::kIsolated, evaluation_constants::kIsolated);
 
     FeatureMap<Phase<f64>> gradient_phase{};
-    FeatureMap<Phase<f64>> W_phase_prev = W;
+    FeatureMap             W_phase_prev = W;
     FeatureMap<Phase<f64>> M_phase{};
 
     f64 bias = 0.0;
@@ -276,6 +277,7 @@ auto sgdm(Dataset& dataset, i32 epochs, f64 lr, i32 batch_size, f64 lambda) -> v
         KEROSENE_PRINT_ARRAY(W, kMobilityRook, 15);
         KEROSENE_PRINT_ARRAY(W, kMobilityQueen, 28);
         KEROSENE_PRINT_ARRAY(W, kPasser, 8);
+        KEROSENE_PRINT_FEATURE(W, kIsolated);
     }
 }
 }  // namespace kerosene::tuning

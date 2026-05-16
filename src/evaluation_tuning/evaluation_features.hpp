@@ -30,6 +30,7 @@ enum class EvalFeature {
     kBishopMaterial,
     kRookMaterial,
     kQueenMaterial,
+    kTempo,
     kPawnPsqt,
     kKnightPsqt     = kPawnPsqt + kPsqtCount,
     kBishopPsqt     = kKnightPsqt + kPsqtCount,

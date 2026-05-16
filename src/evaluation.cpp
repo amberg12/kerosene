@@ -302,6 +302,20 @@ auto evaluate(const Position& pos, tuning::EvaluationTrace* eval_trace) -> Score
     out -= evaluate_queens<Color::kBlack, kEnableTracing>(pos, eval_trace);
     out -= evaluate_king<Color::kBlack, kEnableTracing>(pos, eval_trace);
 
+    if (pos.side_to_move() == Color::kWhite) {
+        out += kTempo;
+
+        if constexpr (kEnableTracing) {
+            eval_trace->increment_feature<Color::kWhite>(tuning::EvalFeature::kTempo);
+        }
+    } else {
+        out -= kTempo;
+
+        if constexpr (kEnableTracing) {
+            eval_trace->increment_feature<Color::kBlack>(tuning::EvalFeature::kTempo);
+        }
+    }
+
     Score score = out.taper(pos.phase());
 
     return pos.side_to_move() == Color::kWhite ? score : -score;

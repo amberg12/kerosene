@@ -135,6 +135,7 @@ auto sgdm(Dataset& dataset, i32 epochs, f64 lr, i32 batch_size, f64 lambda) -> v
     W.load_feature(EvalFeature::kPasser, evaluation_constants::kPasser);
     W.load_feature(EvalFeature::kIsolated, evaluation_constants::kIsolated);
     W.load_feature(EvalFeature::kKingRing, evaluation_constants::kKingRing);
+    W.load_feature(EvalFeature::kTempo, evaluation_constants::kTempo);
 
     FeatureMap<Phase<f64>> gradient_phase{};
     FeatureMap             W_phase_prev = W;
@@ -267,6 +268,7 @@ auto sgdm(Dataset& dataset, i32 epochs, f64 lr, i32 batch_size, f64 lambda) -> v
         KEROSENE_PRINT_FEATURE(W, kBishopMaterial);
         KEROSENE_PRINT_FEATURE(W, kRookMaterial);
         KEROSENE_PRINT_FEATURE(W, kQueenMaterial);
+        KEROSENE_PRINT_FEATURE(W, kTempo);
         KEROSENE_PRINT_PSQT(W, kPawnPsqt);
         KEROSENE_PRINT_PSQT(W, kKnightPsqt);
         KEROSENE_PRINT_PSQT(W, kBishopPsqt);

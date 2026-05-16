@@ -48,25 +48,57 @@ auto Searcher::new_game() -> void {
 }
 
 auto Searcher::iterative_deepening() -> void {
+    Score last_score = kScoreNone;
+    i32   last_depth = -1;
+
+    const auto print_info_line = [&] {
+        std::string score_string = is_mate(last_score) ? "mate" : "cp";
+        std::println("info depth {} score {} {}", last_depth, score_string, last_score);
+    };
+
     MoveList emergency_moves = generate_legal_moves(m_root_position);
     m_best_move              = emergency_moves.front();
 
     for (i32 depth = 1; depth < kMaxDepth; ++depth) {
-        Score score = search<Root>(m_root_position, depth, kNegativeInf, kPositiveInf, 0);
+        Score alpha = kNegativeInf;
+        Score beta  = kPositiveInf;
+        Score delta = 25;
+        Score score = kScoreNone;
 
-        std::string score_string = is_mate(score) ? "mate" : "cp";
-
-        if (is_mate(score)) {
-            score = (mate_in(score) + 1) / 2;
+        if (depth >= 5) {
+            alpha = last_score - delta;
+            beta  = last_score + delta;
         }
 
-        std::println("info depth {} score {} {}", depth, score_string, score);
+        while (true) {
+            score = search<Root>(m_root_position, depth, alpha, beta, 0);
+
+            if (score <= alpha) {
+                alpha = kNegativeInf;
+            } else if (score >= beta) {
+                beta = kPositiveInf;
+            } else {
+                break;
+            }
+
+            if (m_time_manager.stop()) {
+                break;
+            }
+        }
 
         if (m_time_manager.stop()) {
             break;
         }
+
+        last_score = score;
+        last_depth = depth;
+
+        if (!m_time_manager.stop()) {
+            print_info_line();
+        }
     }
 
+    print_info_line();
     std::println("bestmove {}", m_best_move.to_string());
 }
 

@@ -23,6 +23,7 @@ namespace kerosene {
 
 using Score = i32;
 
+constexpr Score kScoreNone   = -32'001;
 constexpr Score kNegativeInf = -32'000;
 constexpr Score kPositiveInf = 32'000;
 

@@ -28,5 +28,5 @@ auto main(int argc, char* argv[]) -> int {
 
     tuning::Dataset dataset = tuning::parse_dataset(fs);
 
-    tuning::sgdm(dataset, 30, 0.1, 1024, 1e-4);
+    tuning::sgdm(dataset, 50, 0.1, 1024, 1e-4);
 }

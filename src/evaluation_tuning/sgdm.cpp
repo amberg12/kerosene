@@ -134,6 +134,7 @@ auto sgdm(Dataset& dataset, i32 epochs, f64 lr, i32 batch_size, f64 lambda) -> v
     W.load_feature(EvalFeature::kMobilityQueen, evaluation_constants::kMobilityQueen);
     W.load_feature(EvalFeature::kPasser, evaluation_constants::kPasser);
     W.load_feature(EvalFeature::kIsolated, evaluation_constants::kIsolated);
+    W.load_feature(EvalFeature::kKingRing, evaluation_constants::kKingRing);
 
     FeatureMap<Phase<f64>> gradient_phase{};
     FeatureMap             W_phase_prev = W;
@@ -278,6 +279,7 @@ auto sgdm(Dataset& dataset, i32 epochs, f64 lr, i32 batch_size, f64 lambda) -> v
         KEROSENE_PRINT_ARRAY(W, kMobilityQueen, 28);
         KEROSENE_PRINT_ARRAY(W, kPasser, 8);
         KEROSENE_PRINT_FEATURE(W, kIsolated);
+        KEROSENE_PRINT_ARRAY(W, kKingRing, 7);
     }
 }
 }  // namespace kerosene::tuning

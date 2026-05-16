@@ -21,6 +21,37 @@
 
 namespace kerosene {
 using namespace kerosene::evaluation_constants;
+namespace {
+
+std::array<BitBoard, 64> kKingRings = [] {
+    constexpr std::array<std::pair<i8, i8>, 8> kOffsets = {{
+      {1, 1},    //
+      {1, -1},   //
+      {-1, -1},  //
+      {-1, 1},   //
+      {1, 0},    //
+      {-1, 0},   //
+      {0, 1},    //
+      {0, -1}    //
+    }};
+
+    std::array<BitBoard, 64> out{};
+    for (usize sq_idx = 0; sq_idx < 64; ++sq_idx) {
+        Square mid_point{sq_idx};
+
+        BitBoard& bb = out[sq_idx];
+
+        for (auto [file_offset, rank_offset] : kOffsets) {
+            bb |= BitBoard{Square{std::clamp(mid_point.file() + file_offset, 0, 7),
+                                  std::clamp(mid_point.rank() + rank_offset, 0, 7)}};
+        }
+
+        bb &= ~BitBoard{mid_point};
+    }
+
+    return out;
+}();
+
 template<Color::Underlying>
 auto is_passed_pawn(const Position& pos, Square passer) -> bool = delete;
 
@@ -46,11 +77,9 @@ auto is_passed_pawn<Color::kBlack>(const Position& pos, Square passer) -> bool {
 template<Color::Underlying kColor>
 auto is_isolated(const Position& pos, Square src) -> bool {
     auto isolated_field = BitBoard::file_triplet(src.file()) & ~BitBoard::file(src.file());
-    return (pos.pieces(kColor, PieceType::kPawn) & isolated_field).pop_count()
-        == 0;
+    return (pos.pieces(kColor, PieceType::kPawn) & isolated_field).pop_count() == 0;
 }
 
-namespace {
 template<Color::Underlying kColor, bool kEnableTracing>
 auto evaluate_material(const Position& pos, tuning::EvaluationTrace* eval_trace) -> ScorePair {
     i32 pawn_count   = pos.piece_count(kColor, PieceType::kPawn);
@@ -220,15 +249,31 @@ template<Color::Underlying kColor, bool kEnableTracing>
 auto evaluate_king(const Position& pos, tuning::EvaluationTrace* eval_trace) -> ScorePair {
     ScorePair out{};
 
-    Square square = pos.king_square(kColor);
+    Square rel_square = pos.king_square(kColor);
+    Square abs_square = rel_square;
     if constexpr (kColor == Color::kBlack) {
-        square = square.mirror();
+        rel_square = rel_square.mirror();
     }
 
-    out += kKingPsqt[square];
+    out += kKingPsqt[rel_square];
 
     if constexpr (kEnableTracing) {
-        eval_trace->increment_feature<kColor>(tuning::EvalFeature::kKingPsqt, square);
+        eval_trace->increment_feature<kColor>(tuning::EvalFeature::kKingPsqt, rel_square);
+    }
+
+    for (Square sq : kKingRings[abs_square]) {
+        PieceMask attackers = pos.attackers_to(sq)[~Color{kColor}];
+
+        for (PieceId attacker : attackers) {
+            auto [square, piece_type] = pos.info_of(attacker, ~Color{kColor});
+
+            out += kKingRing[piece_type];
+
+            if constexpr (kEnableTracing) {
+                eval_trace->increment_feature<kColor>(tuning::EvalFeature::kKingRing,
+                                                      static_cast<usize>(piece_type), 1);
+            }
+        }
     }
 
     return out;

@@ -156,7 +156,24 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
     Stack& ss            = m_ss[ply];
     m_ss[ply + 1].killer = kNullMove;
 
-    std::optional<TData> tt = m_tt.probe(position);
+    std::optional<TData> tt = m_tt.probe(position, ply);
+
+    if (!Node::is_pv && tt && tt->depth >= depth) {
+        switch (tt->bound) {
+        case TData::None:
+            break;
+        case TData::Upper:
+            if (tt->score <= alpha) {
+                return tt->score;
+            }
+        case TData::Lower:
+            if (tt->score >= beta) {
+                return tt->score;
+            }
+        case TData::Exact:
+            return tt->score;
+        }
+    }
 
     Move tt_move = Node::is_root ? m_best_move : tt ? tt->move : kNullMove;
 
@@ -229,11 +246,23 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
         }
     }
 
-    m_tt.write(position, best_move);
-
     if (searched_legal_moves == 0) {
-        return position.checkers_nb() == 0 ? 0 : mated_in(ply);
+        best_score = position.checkers_nb() == 0 ? 0 : mated_in(ply);
     }
+
+    const TData::Bound bound = [&] {
+        if (!best_move) {
+            return TData::Bound::Upper;
+        }
+
+        if (best_score >= beta) {
+            return TData::Bound::Lower;
+        }
+
+        return TData::Bound::Exact;
+    }();
+
+    m_tt.write(position, ply, best_move, depth, best_score, bound);
 
     return best_score;
 }

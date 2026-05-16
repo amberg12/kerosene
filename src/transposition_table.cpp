@@ -18,10 +18,29 @@
 
 #include "transposition_table.hpp"
 #include "position.hpp"
+#include "score.hpp"
 
 #include <cstring>
 
 namespace kerosene {
+namespace {
+auto score_to_tt(Score score, i32 ply) -> i16 {
+    if (!is_mate(score)) {
+        return static_cast<i16>(score);
+    }
+
+    return score > 0 ? score + ply : score - ply;
+}
+
+auto tt_to_score(i16 score, i32 ply) -> i16 {
+    if (!is_mate(score)) {
+        return static_cast<i16>(score);
+    }
+
+    return score > 0 ? score - ply : score + ply;
+}
+}
+
 constexpr auto TranspositionTable::mb_to_size(usize mb) -> usize {
     return mb * 1024 * 1024 / sizeof(*m_data);
 }
@@ -34,24 +53,33 @@ TranspositionTable::~TranspositionTable() {
     destroy();
 }
 
-auto TranspositionTable::probe(const Position& position) const -> std::optional<TData> {
+auto TranspositionTable::probe(const Position& position, i32 ply) const -> std::optional<TData> {
     TSlot slot = *ptr(position);
 
-    return slot.key == position.hash() ? std::make_optional(slot.data) : std::nullopt;
+    TData data = slot.data;
+    data.score = tt_to_score(data.score, ply);
+
+    return data.bound != TData::None && slot.key == position.hash() ? std::make_optional(data)
+                                                                    : std::nullopt;
 }
 
-auto TranspositionTable::write(const Position& position, Move move) const -> void {
+auto TranspositionTable::write(
+  const Position& position, i32 ply, Move move, i32 depth, Score score, TData::Bound bound) const
+  -> void {
     TSlot* slot = ptr(position);
 
-    // If this position had a previous alpha raise, we can trust it's move even if we did not raise
+    // If this position had a previous alpha raise, we can trust its move even if we did not raise
     // alpha again.
     if (!move && slot->key == position.hash()) {
         move = slot->data.move;
     }
 
-    slot->key = position.hash();
+    slot->key  = position.hash();
     slot->data = {
-        .move = move,
+      .move  = move,
+      .score = score_to_tt(score, ply),
+      .depth = static_cast<i8>(depth),
+      .bound = bound,
     };
 }
 

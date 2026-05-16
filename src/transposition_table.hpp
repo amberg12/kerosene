@@ -18,11 +18,22 @@
 
 #pragma once
 #include "move.hpp"
+#include "score.hpp"
 #include "zobrist.hpp"
 
 namespace kerosene {
 struct TData {
-    Move move;
+    enum Bound : i8 {
+        None,
+        Upper,
+        Lower,
+        Exact,
+    };
+
+    Move  move;
+    i16   score{};
+    i8    depth{};
+    Bound bound{};
 };
 
 class TranspositionTable {
@@ -32,8 +43,14 @@ public:
     TranspositionTable();
     ~TranspositionTable();
 
-    auto probe(const Position& position) const -> std::optional<TData>;
-    auto write(const Position& position, Move move) const -> void;
+    [[nodiscard]] auto probe(const Position& position, i32 ply) const -> std::optional<TData>;
+    auto               write(const Position& position,
+                             i32             ply,
+                             Move            move,
+                             i32             depth,
+                             Score           score,
+                             TData::Bound    bound) const -> void;
+
     auto clear() const -> void;
 
 private:

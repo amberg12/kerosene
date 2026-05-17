@@ -193,21 +193,19 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
 
     std::optional<TData> tt = m_tt.probe(position, ply);
 
-    if (!Node::is_pv && tt && tt->depth >= depth) {
+    if (!Node::is_pv && tt && tt->depth >= depth && [&] {
         switch (tt->bound) {
         case TData::None:
-            break;
+            return false;
         case TData::Upper:
-            if (tt->score <= alpha) {
-                return tt->score;
-            }
+            return tt->score <= alpha;
         case TData::Lower:
-            if (tt->score >= beta) {
-                return tt->score;
-            }
+            return tt->score >= beta;
         case TData::Exact:
-            return tt->score;
+            return true;
         }
+    }()) {
+        return tt->score;
     }
 
     Move tt_move = Node::is_root ? m_best_move : tt ? tt->move : kNullMove;

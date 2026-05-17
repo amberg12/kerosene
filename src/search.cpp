@@ -74,12 +74,14 @@ auto Searcher::iterative_deepening() -> void {
             score = search<Root>(m_root_position, depth, alpha, beta, 0);
 
             if (score <= alpha) {
-                alpha = kNegativeInf;
+                alpha = std::max(alpha - delta, kNegativeInf);
             } else if (score >= beta) {
-                beta = kPositiveInf;
+                beta = std::min(beta + delta, kPositiveInf);
             } else {
                 break;
             }
+
+            delta *= 2;
 
             if (m_time_manager.stop()) {
                 break;

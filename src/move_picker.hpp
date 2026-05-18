@@ -20,6 +20,7 @@
 #include "history.hpp"
 #include "move_generation.hpp"
 #include "position.hpp"
+#include "search_stack.hpp"
 
 namespace kerosene {
 
@@ -31,10 +32,17 @@ public:
         kEmitMoves,
     };
 
-    MovePicker(const Position& pos, Move tt_move, History& history, Move killer) :
+    MovePicker(const Position& pos,
+               const Move      tt_move,
+               history&        history,
+               search_stack&   ss,
+               i32             ply,
+               const Move      killer) :
         m_pos(pos),
-        m_tt_move(tt_move),
         m_history(history),
+        m_tt_move(tt_move),
+        m_ss(ss),
+        m_ply(ply),
         m_killer(killer) {
     }
 
@@ -42,8 +50,10 @@ public:
 
 private:
     const Position& m_pos;
-    History&        m_history;
+    history&        m_history;
     Move            m_tt_move;
+    search_stack&   m_ss;
+    i32             m_ply;
     Move            m_killer;
 
     Stage m_stage{kGenerateMoves};

@@ -21,6 +21,7 @@
 #include "position.hpp"
 #include "repetition_table.hpp"
 #include "score.hpp"
+#include "search_stack.hpp"
 #include "time_manager.hpp"
 #include "transposition_table.hpp"
 
@@ -78,11 +79,11 @@ private:
 
     Nodes m_nodes{};
 
-    Position               m_root_position = Position::parse(kStartPos);
-    RepetitionTable        m_repetition_table{};
-    TranspositionTable     m_tt{};
-    History                m_history{};
-    std::array<Stack, 256> m_ss{};
+    Position                 m_root_position = Position::parse(kStartPos);
+    RepetitionTable          m_repetition_table{};
+    TranspositionTable       m_tt{};
+    std::unique_ptr<history> m_history{};
+    search_stack             m_ss{};
 
     TimeManager m_time_manager;
     Move        m_best_move;

@@ -44,7 +44,7 @@ auto Searcher::begin_search(TimeParameters time_parameters) -> void {
 
 auto Searcher::new_game() -> void {
     m_tt.clear();
-    m_history   = History{};
+    m_history   = std::make_unique<history>();
     m_best_move = kNullMove;
 }
 
@@ -117,7 +117,7 @@ auto Searcher::quiesce(const Position& position, Score alpha, Score beta, i32 pl
         return 0;
     }
 
-    MovePicker mp{position, kNullMove, m_history, kNullMove};
+    MovePicker mp{position, kNullMove, *m_history, m_ss, ply, kNullMove};
 
     Score best_score           = kNegativeInf;
     i32   searched_legal_moves = 0;
@@ -188,23 +188,23 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
         return quiesce<typename Node::Next>(position, alpha, beta, ply);
     }
 
-    Stack& ss            = m_ss[ply];
-    m_ss[ply + 1].killer = kNullMove;
+    ss_item& ss                  = m_ss.at(ply);
+    m_ss.at(ply + 1).killer_move = kNullMove;
 
     std::optional<TData> tt = m_tt.probe(position, ply);
 
     if (!Node::is_pv && tt && tt->depth >= depth && [&] {
-        switch (tt->bound) {
-        case TData::None:
-            return false;
-        case TData::Upper:
-            return tt->score <= alpha;
-        case TData::Lower:
-            return tt->score >= beta;
-        case TData::Exact:
-            return true;
-        }
-    }()) {
+            switch (tt->bound) {
+            case TData::None:
+                return false;
+            case TData::Upper:
+                return tt->score <= alpha;
+            case TData::Lower:
+                return tt->score >= beta;
+            case TData::Exact:
+                return true;
+            }
+        }()) {
         return tt->score;
     }
 
@@ -220,7 +220,7 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
 
     MoveList fail_low_quiets{};
 
-    MovePicker mp{position, tt_move, m_history, ss.killer};
+    MovePicker mp{position, tt_move, *m_history, m_ss, ply, ss.killer_move};
 
     Move  best_move  = kNullMove;
     Score best_score = kScoreNone;
@@ -239,6 +239,12 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
         ++move_count;
 
         Position child_position{position, move};
+
+        ss.conthist_subtable = &m_history->cont_history.read(position, move);
+        DEFER {
+            ss.conthist_subtable = nullptr;
+        };
+
         m_repetition_table.push(child_position);
         DEFER {
             m_repetition_table.pop();
@@ -286,8 +292,25 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
 
         if (score >= beta) {
             if (!is_loud) {
-                ss.add_killer(move);
-                m_history.update_quiet_history(position, depth, move, fail_low_quiets);
+                ss.killer_move = move;
+
+                m_history->quiet_history.write(position, best_move, bonus(depth));
+
+                for (const Move fail_low : fail_low_quiets) {
+                    m_history->quiet_history.write(position, fail_low, malus(depth));
+                }
+
+                for (const i32 ply_offset : conthist_offsets) {
+                    const ss_item& p_ss = m_ss.at(ply - ply_offset);
+
+                    if (p_ss.conthist_subtable) {
+                        p_ss.conthist_subtable->write(position, best_move, bonus(depth));
+
+                        for (const Move fail_low : fail_low_quiets) {
+                            p_ss.conthist_subtable->write(position, fail_low, malus(depth));
+                        }
+                    }
+                }
             }
 
             break;

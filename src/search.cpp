@@ -234,6 +234,10 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
             if (!is_loud && move_count >= 5 + depth * depth) {
                 skip_quiets = true;
             }
+
+            if (!is_loud && depth <= 3  && static_eval + 256 + 128 * depth <= alpha) {
+                skip_quiets = true;
+            }
         }
 
         ++move_count;

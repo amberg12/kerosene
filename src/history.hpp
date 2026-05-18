@@ -21,14 +21,12 @@
 #include "move.hpp"
 #include "position.hpp"
 #include "util/integer_types.hpp"
-
-
 #include <memory>
 
 namespace kerosene {
 
 constexpr i32        history_max = 16384;
-constexpr std::array conthist_offsets{1};
+constexpr std::array conthist_offsets{1, 2};
 
 constexpr auto bonus(const i32 depth) -> i16 {
     return static_cast<i16>(std::clamp(320 * depth - 400, 0, 2400));

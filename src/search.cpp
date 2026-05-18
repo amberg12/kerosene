@@ -84,21 +84,23 @@ auto Searcher::iterative_deepening() -> void {
 
             delta *= 2;
 
-            if (m_time_manager.stop()) {
+            if (m_time_manager.hard_stop()) {
                 break;
             }
         }
 
-        if (m_time_manager.stop()) {
+        if (m_time_manager.hard_stop()) {
             break;
         }
 
         last_score = score;
         last_depth = depth;
 
-        if (!m_time_manager.stop()) {
-            print_info_line();
+        if (m_time_manager.soft_stop()) {
+            break;
         }
+
+        print_info_line();
     }
 
     print_info_line();
@@ -109,7 +111,7 @@ template<typename Node>
 auto Searcher::quiesce(const Position& position, Score alpha, Score beta, i32 ply) -> Score {
     m_nodes++;
 
-    if (m_time_manager.stop()) {
+    if (m_time_manager.hard_stop()) {
         return 0;
     }
 
@@ -146,7 +148,7 @@ auto Searcher::quiesce(const Position& position, Score alpha, Score beta, i32 pl
 
         m_repetition_table.pop();
 
-        if (m_time_manager.stop()) {
+        if (m_time_manager.hard_stop()) {
             return 0;
         }
 
@@ -175,7 +177,7 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
   -> Score {
     m_nodes++;
 
-    if (m_time_manager.stop()) {
+    if (m_time_manager.hard_stop()) {
         return 0;
     }
 
@@ -235,7 +237,7 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
                 skip_quiets = true;
             }
 
-            if (!is_loud && depth <= 3  && static_eval + 256 + 128 * depth <= alpha) {
+            if (!is_loud && depth <= 3 && static_eval + 256 + 128 * depth <= alpha) {
                 skip_quiets = true;
             }
         }
@@ -276,7 +278,7 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
             score = -search<Pv>(child_position, new_depth, -beta, -alpha, ply + 1);
         }
 
-        if (m_time_manager.stop()) {
+        if (m_time_manager.hard_stop()) {
             return 0;
         }
 

@@ -33,11 +33,13 @@ public:
     time_manager() = default;
     time_manager(Color side_to_move, time_parameters time_parameters);
 
-    [[nodiscard]] auto stop() const -> bool;
+    [[nodiscard]] auto hard_stop() const -> bool;
+    [[nodiscard]] auto soft_stop() const -> bool;
 
 private:
     time::time_point   m_start_time{};
-    time::milliseconds m_time_limit{};
+    time::milliseconds m_soft_limit{};
+    time::milliseconds m_hard_limit{};
 };
 
 }  // namespace kerosene

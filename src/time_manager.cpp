@@ -34,13 +34,16 @@ time_manager::time_manager(Color side_to_move, time_parameters time_parameters) 
     time::milliseconds safe_time = std::max(time - uci_margin, 0ms);
 
     m_start_time = time::clock::now();
-    m_time_limit = safe_time / 20 + inc / 2;
+    m_soft_limit = safe_time / 20 + inc / 2;
+    m_hard_limit = safe_time / 3 + inc * 9 / 10;
 }
 
-auto time_manager::stop() const -> bool {
-    using namespace std::chrono_literals;
+auto time_manager::hard_stop() const -> bool {
+    return time::clock::now() > m_start_time + m_hard_limit;
+}
 
-    return time::clock::now() > m_start_time + m_time_limit;
+auto time_manager::soft_stop() const -> bool {
+    return time::clock::now() > m_start_time + m_soft_limit;
 }
 
 }

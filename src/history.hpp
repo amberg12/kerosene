@@ -17,8 +17,8 @@
  */
 
 #pragma once
+
 #include "move.hpp"
-#include "move_generation.hpp"
 #include "position.hpp"
 #include "util/integer_types.hpp"
 
@@ -27,7 +27,8 @@
 
 namespace kerosene {
 
-constexpr i32 history_max = 16384;
+constexpr i32        history_max = 16384;
+constexpr std::array conthist_offsets{1};
 
 constexpr auto bonus(const i32 depth) -> i16 {
     return static_cast<i16>(std::clamp(320 * depth - 400, 0, 2400));
@@ -71,8 +72,11 @@ private:
     table m_table{};
 };
 
+using piece_to_history = piece_to_table<i16>;
+
 struct history {
-    piece_to_table<i16> quiet_history;
+    piece_to_history                 quiet_history;
+    piece_to_table<piece_to_history> cont_history;
 };
 
 }  // namespace kerosene

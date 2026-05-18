@@ -55,7 +55,21 @@ auto MovePicker::next_move(bool skip_quiets) -> Move {
             } else if (move == m_killer) {
                 m_scores.emplace_back(kKiller);
             } else {
-                m_scores.emplace_back(m_history.quiet_history.read(m_pos, move));
+                const i32 score = [&] {
+                    i32 out = m_history.quiet_history.read(m_pos, move);
+
+                    for (const i32 ply_offset : conthist_offsets) {
+                        const ss_item& p_ss = m_ss.at(m_ply - ply_offset);
+
+                        if (p_ss.conthist_subtable) {
+                            out += p_ss.conthist_subtable->read(m_pos, move);
+                        }
+                    }
+
+                    return out;
+                }();
+
+                m_scores.emplace_back(score);
             }
         }
 

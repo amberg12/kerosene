@@ -17,12 +17,14 @@
  */
 
 #pragma once
+#include "history.hpp"
 #include "move.hpp"
 
 namespace kerosene {
 
 struct ss_item {
-    Move killer_move = kNullMove;
+    Move              killer_move = kNullMove;
+    piece_to_history* conthist_subtable{};
 };
 
 class search_stack {

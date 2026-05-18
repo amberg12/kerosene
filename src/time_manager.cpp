@@ -20,19 +20,27 @@
 
 namespace kerosene {
 
-TimeManager::TimeManager(Color side_to_move, TimeParameters time_parameters) {
+constexpr time::milliseconds uci_margin{50};
+
+time_manager::time_manager(Color side_to_move, time_parameters time_parameters) {
+    using namespace std::chrono_literals;
+
     auto [time, inc] = side_to_move == Color::kWhite
                        ? std::pair{time_parameters.wtime, time_parameters.winc}
                        : std::pair{time_parameters.btime, time_parameters.binc};
 
-    m_start_time = time::Clock::now();
-    m_time_limit = time / 20 + inc / 2;
+    m_start_time = time::clock::now();
+
+    time::milliseconds safe_time = std::max(time - uci_margin, 0ms);
+
+    m_start_time = time::clock::now();
+    m_time_limit = safe_time / 20 + inc / 2;
 }
 
-auto TimeManager::stop() const -> bool {
+auto time_manager::stop() const -> bool {
     using namespace std::chrono_literals;
 
-    return time::Clock::now() > m_start_time + m_time_limit + 20ms;
+    return time::clock::now() > m_start_time + m_time_limit;
 }
 
 }

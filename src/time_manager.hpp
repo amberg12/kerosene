@@ -21,23 +21,23 @@
 #include "util/integer_types.hpp"
 namespace kerosene {
 
-struct TimeParameters {
-    time::Milliseconds wtime{};
-    time::Milliseconds btime{};
-    time::Milliseconds winc{};
-    time::Milliseconds binc{};
+struct time_parameters {
+    time::milliseconds wtime{};
+    time::milliseconds btime{};
+    time::milliseconds winc{};
+    time::milliseconds binc{};
 };
 
-class TimeManager {
+class time_manager {
 public:
-    TimeManager() = default;
-    TimeManager(Color side_to_move, TimeParameters time_parameters);
+    time_manager() = default;
+    time_manager(Color side_to_move, time_parameters time_parameters);
 
-    auto stop() const -> bool;
+    [[nodiscard]] auto stop() const -> bool;
 
 private:
-    time::TimePoint    m_start_time{};
-    time::Milliseconds m_time_limit{};
+    time::time_point   m_start_time{};
+    time::milliseconds m_time_limit{};
 };
 
 }  // namespace kerosene

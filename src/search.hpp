@@ -36,7 +36,7 @@ public:
     auto set_position(const Position& root_position, const RepetitionTable& repetition_table)
       -> void;
 
-    auto begin_search(TimeParameters time_parameters) -> void;
+    auto begin_search(time_parameters time_parameters) -> void;
 
     auto new_game() -> void;
 
@@ -85,7 +85,7 @@ private:
     std::unique_ptr<history> m_history{};
     search_stack             m_ss{};
 
-    TimeManager m_time_manager;
+    time_manager m_time_manager;
     Move        m_best_move;
 };
 

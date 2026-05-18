@@ -35,10 +35,10 @@ auto Searcher::set_position(const Position& root_position, const RepetitionTable
     m_repetition_table = repetition_table;
 }
 
-auto Searcher::begin_search(TimeParameters time_parameters) -> void {
+auto Searcher::begin_search(time_parameters time_parameters) -> void {
     m_nodes = 0;
 
-    m_time_manager = TimeManager{m_root_position.side_to_move(), time_parameters};
+    m_time_manager = time_manager{m_root_position.side_to_move(), time_parameters};
     iterative_deepening();
 }
 

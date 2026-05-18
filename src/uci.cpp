@@ -123,22 +123,22 @@ auto Uci::handle_perft(std::istringstream& is) const -> void {
 
 auto Uci::handle_go(std::istringstream& is) -> void {
     std::string    token;
-    TimeParameters time_parameters;
+    time_parameters time_parameters;
     i64            i64_buf;
 
     while (is >> token) {
         if (token == "wtime") {
             is >> i64_buf;
-            time_parameters.wtime = static_cast<time::Milliseconds>(i64_buf);
+            time_parameters.wtime = static_cast<time::milliseconds>(i64_buf);
         } else if (token == "btime") {
             is >> i64_buf;
-            time_parameters.btime = static_cast<time::Milliseconds>(i64_buf);
+            time_parameters.btime = static_cast<time::milliseconds>(i64_buf);
         } else if (token == "winc") {
             is >> i64_buf;
-            time_parameters.winc = static_cast<time::Milliseconds>(i64_buf);
+            time_parameters.winc = static_cast<time::milliseconds>(i64_buf);
         } else if (token == "binc") {
             is >> i64_buf;
-            time_parameters.binc = static_cast<time::Milliseconds>(i64_buf);
+            time_parameters.binc = static_cast<time::milliseconds>(i64_buf);
         }
     }
 
@@ -209,14 +209,14 @@ auto Uci::handle_bench() -> void {
       "2r2n2/8/3k4/8/8/4KN2/8/6R1 w - - 0 1",
     }};
 
-    TimeParameters params = {
+    time_parameters params = {
       .wtime = 1000ms,
       .btime = 1000ms,
       .winc  = 100ms,
       .binc  = 100ms,
     };
 
-    time::TimePoint start = time::Clock::now();
+    time::time_point start = time::clock::now();
     Nodes           nodes = 0;
 
     for (const auto& fen : kFens) {
@@ -230,7 +230,7 @@ auto Uci::handle_bench() -> void {
         nodes += searcher.nodes();
     }
 
-    time::TimePoint end = time::Clock::now();
+    time::time_point end = time::clock::now();
 
     std::println("{} nodes {} nps", nodes, time::nps(nodes, end - start));
 }

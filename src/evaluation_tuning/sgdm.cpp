@@ -159,7 +159,7 @@ auto sgdm(Dataset& dataset, i32 epochs, f64 lr, i32 batch_size, f64 lambda) -> v
     i32 epochs_without_improvement = 0;
 
     for (i32 epoch = 0; epoch < epochs; ++epoch) {
-        time::TimePoint epoch_start = time::Clock::now();
+        time::time_point epoch_start = time::clock::now();
 
         if (tc == T) {
             T *= 2;
@@ -239,7 +239,7 @@ auto sgdm(Dataset& dataset, i32 epochs, f64 lr, i32 batch_size, f64 lambda) -> v
         f64 magnitude_mean = magnitude / kFeatureCount;
 
         auto time_for_epoch =
-          std::chrono::duration_cast<std::chrono::milliseconds>(time::Clock::now() - epoch_start)
+          std::chrono::duration_cast<std::chrono::milliseconds>(time::clock::now() - epoch_start)
             .count();
         auto kpos_per_second = (M / static_cast<f64>(time_for_epoch)) / 1000.0 * 1000.0;
 

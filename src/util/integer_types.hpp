@@ -41,11 +41,11 @@ using f32 = float;
 using f64 = double;
 
 namespace time {
-using Clock        = std::chrono::steady_clock;
-using TimePoint    = std::chrono::time_point<Clock>;
-using Duration     = TimePoint::duration;
-using FloatSeconds = std::chrono::duration<f64>;
-using Milliseconds = std::chrono::duration<i64, std::milli>;
+using clock         = std::chrono::steady_clock;
+using time_point    = std::chrono::time_point<clock>;
+using duration      = time_point::duration;
+using float_seconds = std::chrono::duration<f64>;
+using milliseconds  = std::chrono::duration<i64, std::milli>;
 
 template<typename T>
 constexpr T cast(const auto& x) {
@@ -53,7 +53,7 @@ constexpr T cast(const auto& x) {
 }
 
 constexpr auto nps(u64 nodes, const auto& elapsed) -> u64 {
-    return static_cast<u64>(static_cast<f64>(nodes) / cast<FloatSeconds>(elapsed).count());
+    return static_cast<u64>(static_cast<f64>(nodes) / cast<float_seconds>(elapsed).count());
 }
 }  // namespace time
 

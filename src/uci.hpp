@@ -44,7 +44,7 @@ private:
     Position        m_position{Position::parse(kStartPos)};
     RepetitionTable m_repetition_table{};
 
-    Searcher m_searcher{};
+    searcher m_searcher{};
 };
 
 }  // kerosene

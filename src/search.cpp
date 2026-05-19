@@ -29,26 +29,27 @@ namespace {
 constexpr i32 kMaxDepth = 255;
 }
 
-auto Searcher::set_position(const Position& root_position, const RepetitionTable& repetition_table)
+auto searcher::set_position(const Position& root_position, const RepetitionTable& repetition_table)
   -> void {
     m_root_position    = root_position;
     m_repetition_table = repetition_table;
 }
 
-auto Searcher::begin_search(time_parameters time_parameters) -> void {
-    m_nodes = 0;
+auto searcher::begin_search(time_parameters time_parameters) -> void {
+    m_nodes      = 0;
+    m_node_table = multi_array_t<kerosene::nodes, Square::kNb, Square::kNb>{};
 
     m_time_manager = time_manager{m_root_position.side_to_move(), time_parameters};
     iterative_deepening();
 }
 
-auto Searcher::new_game() -> void {
+auto searcher::new_game() -> void {
     m_tt.clear();
     m_history   = std::make_unique<history>();
     m_best_move = kNullMove;
 }
 
-auto Searcher::iterative_deepening() -> void {
+auto searcher::iterative_deepening() -> void {
     Score last_score = kScoreNone;
     i32   last_depth = -1;
 
@@ -72,7 +73,7 @@ auto Searcher::iterative_deepening() -> void {
         }
 
         while (true) {
-            score = search<Root>(m_root_position, depth, alpha, beta, 0);
+            score = search<root_node>(m_root_position, depth, alpha, beta, 0);
 
             if (score <= alpha) {
                 alpha = std::max(alpha - delta, kNegativeInf);
@@ -96,6 +97,13 @@ auto Searcher::iterative_deepening() -> void {
         last_score = score;
         last_depth = depth;
 
+        // Only touch the soft limit above depth 5 to avoid instability found in low depths.
+        if (depth >= 5) {
+            const f64 node_ratio = static_cast<f64>(m_node_table[m_best_move.src()][m_best_move.dst()])
+                             / static_cast<f64>(m_nodes);
+            m_time_manager.recompute_soft_limit(node_ratio);
+        }
+
         if (m_time_manager.soft_stop()) {
             break;
         }
@@ -108,7 +116,7 @@ auto Searcher::iterative_deepening() -> void {
 }
 
 template<typename Node>
-auto Searcher::quiesce(const Position& position, Score alpha, Score beta, i32 ply) -> Score {
+auto searcher::quiesce(const Position& position, Score alpha, Score beta, i32 ply) -> Score {
     m_nodes++;
 
     if (m_time_manager.hard_stop()) {
@@ -144,7 +152,7 @@ auto Searcher::quiesce(const Position& position, Score alpha, Score beta, i32 pl
         Position child_position{position, move};
         m_repetition_table.push(child_position);
 
-        Score score = -quiesce<NonPv>(child_position, -beta, -alpha, ply + 1);
+        Score score = -quiesce<non_pv_node>(child_position, -beta, -alpha, ply + 1);
 
         m_repetition_table.pop();
 
@@ -173,7 +181,7 @@ auto Searcher::quiesce(const Position& position, Score alpha, Score beta, i32 pl
 }
 
 template<typename Node>
-auto Searcher::search(const Position& position, i32 depth, Score alpha, Score beta, i32 ply)
+auto searcher::search(const Position& position, i32 depth, Score alpha, Score beta, i32 ply)
   -> Score {
     m_nodes++;
 
@@ -187,7 +195,7 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
     }
 
     if (depth <= 0) {
-        return quiesce<typename Node::Next>(position, alpha, beta, ply);
+        return quiesce<typename Node::next>(position, alpha, beta, ply);
     }
 
     ss_item& ss                  = m_ss.at(ply);
@@ -232,6 +240,8 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
     for (Move move = mp.next_move(skip_quiets); move; move = mp.next_move(skip_quiets)) {
         bool is_loud = position.is_capture(move) || move.special_type() == Move::kPromotion;
 
+        nodes nodes_before_search = m_nodes;
+
         if (!Node::is_root && !position.check() && !is_loss(best_score)) {
             if (!is_loud && move_count >= 5 + depth * depth) {
                 skip_quiets = true;
@@ -265,21 +275,28 @@ auto Searcher::search(const Position& position, i32 depth, Score alpha, Score be
 
             const i32 lmr_depth = std::clamp(new_depth - r, 0, new_depth);
 
-            score = -search<NonPv>(child_position, lmr_depth, -alpha - 1, -alpha, ply + 1);
+            score = -search<non_pv_node>(child_position, lmr_depth, -alpha - 1, -alpha, ply + 1);
 
             if (score > alpha && lmr_depth < new_depth) {
-                score = -search<NonPv>(child_position, new_depth, -alpha - 1, -alpha, ply + 1);
+                score =
+                  -search<non_pv_node>(child_position, new_depth, -alpha - 1, -alpha, ply + 1);
             }
         } else if (!Node::is_pv || move_count > 1) {
-            score = -search<NonPv>(child_position, new_depth, -alpha - 1, -alpha, ply + 1);
+            score = -search<non_pv_node>(child_position, new_depth, -alpha - 1, -alpha, ply + 1);
         }
 
         if (Node::is_pv && (move_count == 1 || score > alpha)) {
-            score = -search<Pv>(child_position, new_depth, -beta, -alpha, ply + 1);
+            score = -search<pv_node>(child_position, new_depth, -beta, -alpha, ply + 1);
         }
 
         if (m_time_manager.hard_stop()) {
             return 0;
+        }
+
+        nodes nodes_after_search = m_nodes;
+
+        if constexpr (Node::is_root) {
+            m_node_table[move.src()][move.dst()] += nodes_after_search - nodes_before_search;
         }
 
         if (score > best_score) {

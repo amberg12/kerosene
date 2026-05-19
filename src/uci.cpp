@@ -217,17 +217,17 @@ auto Uci::handle_bench() -> void {
     };
 
     time::time_point start = time::clock::now();
-    Nodes           nodes = 0;
+    nodes           nodes = 0;
 
     for (const auto& fen : kFens) {
-        Searcher        searcher{};
+        searcher        searcher{};
         RepetitionTable repetition_table;
 
         searcher.set_position(Position::parse(fen), repetition_table);
         searcher.new_game();
         searcher.begin_search(params);
 
-        nodes += searcher.nodes();
+        nodes += searcher.node_count();
     }
 
     time::time_point end = time::clock::now();

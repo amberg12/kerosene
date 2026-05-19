@@ -1,5 +1,5 @@
 /*
-  Shellac - A UCI chess engine.
+  Kerosene - A UCI chess engine.
   Copyright (C) 2026 Amber Goulding
 
   This program is free software: you can redistribute it and/or modify
@@ -17,33 +17,21 @@
  */
 
 #pragma once
-#include "types.hpp"
-#include "util/integer_types.hpp"
+#include "integer_types.hpp"
+
 namespace kerosene {
 
-struct time_parameters {
-    time::milliseconds wtime{};
-    time::milliseconds btime{};
-    time::milliseconds winc{};
-    time::milliseconds binc{};
+template<typename T, usize size, usize ...sizes>
+struct multi_array {
+    using type = std::array<typename multi_array<T, sizes...>::type, size>;
 };
 
-class time_manager {
-public:
-    time_manager() = default;
-    time_manager(Color side_to_move, time_parameters time_parameters);
-
-    [[nodiscard]] auto hard_stop() const -> bool;
-    [[nodiscard]] auto soft_stop() const -> bool;
-
-    auto recompute_soft_limit(f64 node_ratio) -> void;
-
-private:
-    time::time_point   m_start_time{};
-    time::milliseconds m_soft_limit{};
-    time::milliseconds m_hard_limit{};
-    time::milliseconds m_safe_time{};
-    time::milliseconds m_inc{};
+template <typename T, usize size>
+struct multi_array<T, size> {
+    using type = std::array<T, size>;
 };
+
+template<typename T, usize size, usize ...sizes>
+using multi_array_t = multi_array<T, size, sizes...>::type;
 
 }  // namespace kerosene

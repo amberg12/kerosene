@@ -51,6 +51,7 @@ add_executable(Kerosene
         src/util/defer.hpp
         src/util/macro.hpp
         src/search_stack.hpp
+        src/util/multi_array.hpp
 )
 
 add_executable(KeroseneTuning

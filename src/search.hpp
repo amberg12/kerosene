@@ -24,14 +24,15 @@
 #include "search_stack.hpp"
 #include "time_manager.hpp"
 #include "transposition_table.hpp"
+#include "util/multi_array.hpp"
 
 namespace kerosene {
 
-using Nodes = u64;
+using nodes = u64;
 
-class Searcher {
+class searcher {
 public:
-    Searcher() = default;
+    searcher() = default;
 
     auto set_position(const Position& root_position, const RepetitionTable& repetition_table)
       -> void;
@@ -40,26 +41,26 @@ public:
 
     auto new_game() -> void;
 
-    [[nodiscard]] auto nodes() const -> Nodes {
+    [[nodiscard]] auto node_count() const -> nodes {
         return m_nodes;
     }
 
 private:
-    template<bool kIsPv, bool kIsRoot, typename N>
-    struct NodeType {
-        static constexpr bool is_pv   = kIsPv;
-        static constexpr bool is_root = kIsRoot;
+    template<bool pv, bool root, typename N>
+    struct node_type {
+        static constexpr bool is_pv   = pv;
+        static constexpr bool is_root = root;
 
-        using Next = N;
+        using next = N;
     };
 
-    struct Root;
-    struct Pv;
-    struct NonPv;
+    struct root_node;
+    struct pv_node;
+    struct non_pv_node;
 
-    struct Root : NodeType<true, true, Pv> { };
-    struct Pv : NodeType<true, false, Pv> { };
-    struct NonPv : NodeType<false, false, NonPv> { };
+    struct root_node : node_type<true, true, pv_node> { };
+    struct pv_node : node_type<true, false, pv_node> { };
+    struct non_pv_node : node_type<false, false, non_pv_node> { };
 
     struct Stack {
         Move killer{};
@@ -77,7 +78,9 @@ private:
     template<typename N>
     auto search(const Position& position, i32 depth, Score alpha, Score beta, i32 ply) -> Score;
 
-    Nodes m_nodes{};
+    nodes m_nodes{};
+
+    multi_array_t<nodes, Square::kNb, Square::kNb> m_node_table{};
 
     Position                 m_root_position = Position::parse(kStartPos);
     RepetitionTable          m_repetition_table{};
@@ -86,7 +89,7 @@ private:
     search_stack             m_ss{};
 
     time_manager m_time_manager;
-    Move        m_best_move;
+    Move         m_best_move;
 };
 
 }  // namespace kerosene

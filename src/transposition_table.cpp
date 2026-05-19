@@ -41,32 +41,36 @@ auto tt_to_score(i16 score, i32 ply) -> i16 {
 }
 }
 
-constexpr auto TranspositionTable::mb_to_size(usize mb) -> usize {
+constexpr auto transposition_table::mb_to_size(usize mb) -> usize {
     return mb * 1024 * 1024 / sizeof(*m_data);
 }
 
-TranspositionTable::TranspositionTable() {
-    allocate(kDefaultMb);
+transposition_table::transposition_table() {
+    allocate(default_mb);
 }
 
-TranspositionTable::~TranspositionTable() {
+transposition_table::~transposition_table() {
     destroy();
 }
 
-auto TranspositionTable::probe(const Position& position, i32 ply) const -> std::optional<TData> {
-    TSlot slot = *ptr(position);
+auto transposition_table::probe(const Position& position, i32 ply) const -> std::optional<tt_data> {
+    tt_slot slot = *ptr(position);
 
-    TData data = slot.data;
-    data.score = tt_to_score(data.score, ply);
+    tt_data data = slot.data;
+    data.score   = tt_to_score(data.score, ply);
 
-    return data.bound != TData::None && slot.key == position.hash() ? std::make_optional(data)
-                                                                    : std::nullopt;
+    return data.bound != tt_data::none && slot.key == position.hash() ? std::make_optional(data)
+                                                                      : std::nullopt;
 }
 
-auto TranspositionTable::write(
-  const Position& position, i32 ply, Move move, i32 depth, Score score, TData::Bound bound) const
-  -> void {
-    TSlot* slot = ptr(position);
+auto transposition_table::write(const Position&   position,
+                                i32               ply,
+                                Move              move,
+                                i32               depth,
+                                Score             score,
+                                Score             static_eval,
+                                tt_data::tt_bound bound) const -> void {
+    tt_slot* slot = ptr(position);
 
     // If this position had a previous alpha raise, we can trust its move even if we did not raise
     // alpha again.
@@ -76,29 +80,30 @@ auto TranspositionTable::write(
 
     slot->key  = position.hash();
     slot->data = {
-      .move  = move,
-      .score = score_to_tt(score, ply),
-      .depth = static_cast<i8>(depth),
-      .bound = bound,
+      .move        = move,
+      .score       = score_to_tt(score, ply),
+      .static_eval = static_cast<i16>(static_eval),
+      .depth       = static_cast<i8>(depth),
+      .bound       = bound,
     };
 }
 
-auto TranspositionTable::clear() const -> void {
+auto transposition_table::clear() const -> void {
     std::memset(m_data, 0, m_size * sizeof(*m_data));
 }
 
-auto TranspositionTable::allocate(usize mb) -> void {
-    m_data = new TSlot[mb_to_size(mb)];
+auto transposition_table::allocate(usize mb) -> void {
+    m_data = new tt_slot[mb_to_size(mb)];
     m_size = mb_to_size(mb);
     clear();
 }
 
-auto TranspositionTable::destroy() -> void {
+auto transposition_table::destroy() -> void {
     delete[] m_data;
     m_data = nullptr;
 }
 
-auto TranspositionTable::ptr(const Position& position) const -> TSlot* {
+auto transposition_table::ptr(const Position& position) const -> tt_slot* {
     usize idx = position.hash() % m_size;
     return m_data + idx;
 }

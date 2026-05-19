@@ -22,41 +22,43 @@
 #include "zobrist.hpp"
 
 namespace kerosene {
-struct TData {
-    enum Bound : i8 {
-        None,
-        Upper,
-        Lower,
-        Exact,
+struct tt_data {
+    enum tt_bound : i8 {
+        none,
+        upper,
+        lower,
+        exact,
     };
 
-    Move  move;
-    i16   score{};
-    i8    depth{};
-    Bound bound{};
+    Move     move;
+    i16      score{};
+    i16      static_eval{};
+    i8       depth{};
+    tt_bound bound{};
 };
 
-class TranspositionTable {
-    static constexpr usize kDefaultMb = 16;
+class transposition_table {
+    static constexpr usize default_mb = 16;
 
 public:
-    TranspositionTable();
-    ~TranspositionTable();
+    transposition_table();
+    ~transposition_table();
 
-    [[nodiscard]] auto probe(const Position& position, i32 ply) const -> std::optional<TData>;
-    auto               write(const Position& position,
-                             i32             ply,
-                             Move            move,
-                             i32             depth,
-                             Score           score,
-                             TData::Bound    bound) const -> void;
+    [[nodiscard]] auto probe(const Position& position, i32 ply) const -> std::optional<tt_data>;
+    auto               write(const Position&   position,
+                             i32               ply,
+                             Move              move,
+                             i32               depth,
+                             Score             score,
+                             Score             static_eval,
+                             tt_data::tt_bound bound) const -> void;
 
     auto clear() const -> void;
 
 private:
-    struct TSlot {
-        ZKey  key{};
-        TData data;
+    struct tt_slot {
+        ZKey    key{};
+        tt_data data;
     };
 
     static constexpr auto mb_to_size(usize mb) -> usize;
@@ -64,10 +66,10 @@ private:
     auto allocate(usize mb) -> void;
     auto destroy() -> void;
 
-    auto ptr(const Position& position) const -> TSlot*;
+    auto ptr(const Position& position) const -> tt_slot*;
 
-    TSlot* m_data{nullptr};
-    usize  m_size{0};
+    tt_slot* m_data{nullptr};
+    usize    m_size{0};
 };
 
 }

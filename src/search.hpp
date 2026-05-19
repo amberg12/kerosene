@@ -84,7 +84,7 @@ private:
 
     Position                 m_root_position = Position::parse(kStartPos);
     RepetitionTable          m_repetition_table{};
-    TranspositionTable       m_tt{};
+    transposition_table       m_tt{};
     std::unique_ptr<history> m_history{};
     search_stack             m_ss{};
 

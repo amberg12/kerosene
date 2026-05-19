@@ -201,17 +201,17 @@ auto searcher::search(const Position& position, i32 depth, Score alpha, Score be
     ss_item& ss                  = m_ss.at(ply);
     m_ss.at(ply + 1).killer_move = kNullMove;
 
-    std::optional<TData> tt = m_tt.probe(position, ply);
+    std::optional<tt_data> tt = m_tt.probe(position, ply);
 
     if (!Node::is_pv && tt && tt->depth >= depth && [&] {
             switch (tt->bound) {
-            case TData::None:
+            case tt_data::none:
                 return false;
-            case TData::Upper:
+            case tt_data::upper:
                 return tt->score <= alpha;
-            case TData::Lower:
+            case tt_data::lower:
                 return tt->score >= beta;
-            case TData::Exact:
+            case tt_data::exact:
                 return true;
             }
         }()) {
@@ -220,7 +220,7 @@ auto searcher::search(const Position& position, i32 depth, Score alpha, Score be
 
     Move tt_move = Node::is_root ? m_best_move : tt ? tt->move : kNullMove;
 
-    Score static_eval = evaluate(position);
+    Score static_eval = tt ? tt->static_eval : evaluate(position);
 
     if (!Node::is_pv && !position.check()) {
         if (depth <= 5 && static_eval - 150 * depth >= beta) {
@@ -348,19 +348,19 @@ auto searcher::search(const Position& position, i32 depth, Score alpha, Score be
         best_score = position.checkers_nb() == 0 ? 0 : mated_in(ply);
     }
 
-    const TData::Bound bound = [&] {
+    const tt_data::tt_bound bound = [&] {
         if (!best_move) {
-            return TData::Bound::Upper;
+            return tt_data::tt_bound::upper;
         }
 
         if (best_score >= beta) {
-            return TData::Bound::Lower;
+            return tt_data::tt_bound::lower;
         }
 
-        return TData::Bound::Exact;
+        return tt_data::tt_bound::exact;
     }();
 
-    m_tt.write(position, ply, best_move, depth, best_score, bound);
+    m_tt.write(position, ply, best_move, depth, best_score, static_eval, bound);
 
     return best_score;
 }

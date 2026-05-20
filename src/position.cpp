@@ -61,6 +61,7 @@ auto PieceList::mutate_piece(PieceId piece_id, PieceType to) -> void {
 
 Position::Position(const Position& parent, Move move) :
     m_mail_box(parent.m_mail_box),
+    m_attack_table(parent.m_attack_table),
     m_piece_list(parent.m_piece_list),
     m_bit_boards(parent.m_bit_boards),
     m_key(parent.m_key),
@@ -69,7 +70,6 @@ Position::Position(const Position& parent, Move move) :
     m_castling_rights(parent.m_castling_rights),
     m_en_passant_target_square(parent.m_en_passant_target_square) {
     make_move(move);
-    lazy_generate_attack_table();
     calculate_pin_rays();
 }
 
@@ -389,6 +389,11 @@ auto Position::move_piece(Square src, Square dst) -> void {
     m_piece_list[piece.color()].move_piece(piece_id, dst);
     m_bit_boards[piece.color()][piece.piece_type()].unset_square(src);
     m_bit_boards[piece.color()][piece.piece_type()].set_square(dst);
+
+    remove_attacker(piece.color(), piece_id);
+    generate_attacks_for(piece.color(), piece_id);
+    update_sliders_to(src);
+    update_sliders_to(dst);
 }
 
 auto Position::delete_piece(Square at) -> void {
@@ -399,6 +404,9 @@ auto Position::delete_piece(Square at) -> void {
     m_piece_list[piece.color()].delete_piece(piece_id);
     m_mail_box[at] = Tile{};
     m_bit_boards[piece.color()][piece.piece_type()].unset_square(at);
+
+    remove_attacker(piece.color(), piece_id);
+    update_sliders_to(at);
 }
 
 auto Position::mutate_piece(Square at, PieceType to) -> void {
@@ -412,6 +420,9 @@ auto Position::mutate_piece(Square at, PieceType to) -> void {
     m_mail_box[at] = Tile{piece_id, to_piece};
     m_bit_boards[piece.color()][piece.piece_type()].unset_square(at);
     m_bit_boards[piece.color()][to].set_square(at);
+
+    remove_attacker(piece.color(), piece_id);
+    generate_attacks_for(piece.color(), piece_id);
 }
 
 namespace x88 {
@@ -440,6 +451,40 @@ constexpr i32 ssw_horsie = s_orth + s_orth + w_orth;
 constexpr i32 sww_horsie = s_orth + w_orth + w_orth;
 constexpr i32 nww_horsie = n_orth + w_orth + w_orth;
 constexpr i32 nnw_horsie = n_orth + n_orth + w_orth;
+
+auto direction(Square src, Square dst) -> i32 {
+    const i32 diff = to_x88(dst) - to_x88(src);
+
+    if (diff > 0) {
+        if (diff % n_orth == 0) {
+            return n_orth;  // +16
+        }
+        if (diff % ne_diag == 0) {
+            return ne_diag;
+        }
+        if (diff % nw_diag == 0) {
+            return nw_diag;
+        }
+        if (diff < 8) {
+            return e_orth;
+        }
+    } else if (diff < 0) {
+        if (-diff % n_orth == 0) {
+            return s_orth;
+        }
+        if (-diff % ne_diag == 0) {
+            return sw_diag;
+        }
+        if (-diff % nw_diag == 0) {
+            return se_diag;
+        }
+        if (-diff < 8) {
+            return w_orth;
+        }
+    }
+
+    return 0;
+}
 
 }  // namespace
 
@@ -546,6 +591,57 @@ auto Position::generate_leaper(Color color, PieceId piece_id, Square src, i32 di
     m_attack_table[color][coordinate].set_id(piece_id);
 }
 
+auto Position::remove_attacker(Color color, PieceId piece_id) -> void {
+    m_attack_table[color].remove_attacker(piece_id);
+}
+
+auto Position::update_sliders_to(Square src) -> void {
+    const auto attackers = attackers_to(src);
+    for (PieceId piece_id : attackers[Color::kWhite]) {
+        update_slider(Color::kWhite, piece_id, src);
+    }
+
+    for (PieceId piece_id : attackers[Color::kBlack]) {
+        update_slider(Color::kBlack, piece_id, src);
+    }
+}
+
+auto Position::update_slider(Color color, PieceId piece_id, Square to) -> void {
+    const auto [src, piece_type] = info_of(piece_id, color);
+
+    if (!piece_type.slider()) {
+        return;
+    }
+
+    const i32 direction = x88::direction(src, to);
+    i32 x88_coordinate = x88::to_x88(src);
+
+    word_board& wb = m_attack_table[color];
+
+    bool encountered_piece = false;
+
+    while (true) {
+        x88_coordinate += direction;
+
+        if ((x88_coordinate & 0x88) != 0) {
+            break;
+        }
+
+        const Square coordinate = x88::from_x88(x88_coordinate);
+
+        if (!encountered_piece) {
+            wb[coordinate].set_id(piece_id);
+        } else {
+            if (!wb[coordinate].has_id(piece_id)) {
+                return;
+            }
+
+            wb[coordinate].unset_id(piece_id);
+        }
+
+        encountered_piece = encountered_piece || m_mail_box[coordinate].unpack().second.is_some();
+    }
+}
 
 auto Position::calculate_pin_rays() -> void {
     for (PieceId rook_id : m_piece_list[~m_side_to_move].piece_type(PieceType::kRook)) {

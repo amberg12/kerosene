@@ -151,9 +151,9 @@ private:
     std::array<Tile, 64> m_byte_board;
 };
 
-class alignas(64) WordBoard {
+class alignas(64) word_board {
 public:
-    constexpr WordBoard() = default;
+    constexpr word_board() = default;
 
     [[nodiscard]] constexpr auto operator[](Square square) -> PieceMask& {
         return m_word_board[square];
@@ -185,6 +185,12 @@ public:
         }
 
         return out;
+    }
+
+    constexpr auto remove_attacker(PieceId piece_id) -> void {
+        for (PieceMask& mask : m_word_board) {
+            mask.unset_id(piece_id);
+        }
     }
 
 private:
@@ -359,9 +365,13 @@ private:
     auto generate_slider(Color color, PieceId piece_id, Square src, i32 direction) -> void;
     auto generate_leaper(Color color, PieceId piece_id, Square src, i32 direction) -> void;
 
+    auto remove_attacker(Color color, PieceId piece_id) -> void;
+    auto update_sliders_to(Square src) -> void;
+    auto update_slider(Color color, PieceId piece_id, Square to) -> void;
+
     auto calculate_pin_rays() -> void;
 
-    ColorMap<WordBoard>              m_attack_table{};
+    ColorMap<word_board>              m_attack_table{};
     ByteBoard                        m_mail_box{};
     ColorMap<PieceList>              m_piece_list{};
     ColorMap<PieceTypeMap<BitBoard>> m_bit_boards{};

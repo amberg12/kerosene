@@ -353,13 +353,11 @@ private:
     auto delete_piece(Square at) -> void;
     auto mutate_piece(Square at, PieceType to) -> void;
 
-    auto generate_full_attack_table() -> void;
-    auto update_attack_table(Color color, Square square, PieceType piece_type, PieceId piece_id)
-      -> void;
-    template<PieceType::Underlying PieceType>
-    auto update_attack_table_for(Color color, Square square, PieceId piece_id) -> void = delete;
-    auto update_diagonal_sliders_for(Color color, Square square, PieceId piece_id) -> void;
-    auto update_orthogonal_sliders_for(Color color, Square square, PieceId piece_id) -> void;
+    auto lazy_generate_attack_table() -> void;
+
+    auto generate_attacks_for(Color color, PieceId piece_id) -> void;
+    auto generate_slider(Color color, PieceId piece_id, Square src, i32 direction) -> void;
+    auto generate_leaper(Color color, PieceId piece_id, Square src, i32 direction) -> void;
 
     auto calculate_pin_rays() -> void;
 

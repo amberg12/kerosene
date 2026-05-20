@@ -269,6 +269,14 @@ public:
         return m_raw;
     }
 
+    [[nodiscard]] constexpr auto is_orth() const -> bool {
+        return m_raw == kRook || m_raw == kQueen;
+    }
+
+    [[nodiscard]] constexpr auto is_diag() const -> bool {
+        return m_raw == kBishop || m_raw == kQueen;
+    }
+
     [[nodiscard]] constexpr auto slider() const -> bool {
         return *this == kBishop || *this == kRook || *this == kQueen;
     }
@@ -357,6 +365,10 @@ public:
 
     /* implicit */ Piece(Underlying raw) :
         m_raw(raw) {
+    }
+
+    [[nodiscard]] constexpr auto is_some() const -> bool {
+        return m_raw != kEmpty;
     }
 
     explicit constexpr operator usize() const {

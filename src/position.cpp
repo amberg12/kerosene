@@ -69,7 +69,7 @@ Position::Position(const Position& parent, Move move) :
     m_castling_rights(parent.m_castling_rights),
     m_en_passant_target_square(parent.m_en_passant_target_square) {
     make_move(move);
-    generate_full_attack_table();
+    lazy_generate_attack_table();
     calculate_pin_rays();
 }
 
@@ -137,7 +137,7 @@ auto Position::parse(std::string_view fen) -> Position {
 
     out.m_move_rule = std::stoi(move_rule);
 
-    out.generate_full_attack_table();
+    out.lazy_generate_attack_table();
     out.calculate_pin_rays();
 
     return out;
@@ -414,216 +414,138 @@ auto Position::mutate_piece(Square at, PieceType to) -> void {
     m_bit_boards[piece.color()][to].set_square(at);
 }
 
-auto Position::generate_full_attack_table() -> void {
-    m_attack_table[Color::kWhite] = WordBoard{};
-    m_attack_table[Color::kBlack] = WordBoard{};
-    for (PieceId id : m_piece_list[Color::kWhite]) {
-        auto [square, piece_type] = info_of(id, Color::kWhite);
+namespace x88 {
+auto to_x88(Square sq) -> i32 {
+    const i32 sq_num = static_cast<i32>(sq);
+    return sq_num + (sq_num & ~7);
+}
 
-        update_attack_table(Color::kWhite, square, piece_type, id);
+auto from_x88(i32 sq_num) -> Square {
+    return Square{static_cast<usize>((sq_num + (sq_num & 7)) >> 1)};
+}
+
+constexpr i32 n_orth     = 16;
+constexpr i32 e_orth     = 1;
+constexpr i32 s_orth     = -16;
+constexpr i32 w_orth     = -1;
+constexpr i32 ne_diag    = n_orth + e_orth;
+constexpr i32 se_diag    = s_orth + e_orth;
+constexpr i32 sw_diag    = s_orth + w_orth;
+constexpr i32 nw_diag    = n_orth + w_orth;
+constexpr i32 nne_horsie = n_orth + n_orth + e_orth;
+constexpr i32 nee_horsie = n_orth + e_orth + e_orth;
+constexpr i32 see_horsie = s_orth + e_orth + e_orth;
+constexpr i32 sse_horsie = s_orth + s_orth + e_orth;
+constexpr i32 ssw_horsie = s_orth + s_orth + w_orth;
+constexpr i32 sww_horsie = s_orth + w_orth + w_orth;
+constexpr i32 nww_horsie = n_orth + w_orth + w_orth;
+constexpr i32 nnw_horsie = n_orth + n_orth + w_orth;
+
+}  // namespace
+
+auto Position::lazy_generate_attack_table() -> void {
+    for (PieceId id : m_piece_list[Color::kWhite]) {
+        generate_attacks_for(Color::kWhite, id);
     }
 
     for (PieceId id : m_piece_list[Color::kBlack]) {
-        auto [square, piece_type] = info_of(id, Color::kBlack);
-
-        update_attack_table(Color::kBlack, square, piece_type, id);
+        generate_attacks_for(Color::kBlack, id);
     }
 }
 
-template<>
-auto Position::update_attack_table_for<PieceType::kPawn>(Color   color,
-                                                         Square  square,
-                                                         PieceId piece_id) -> void {
-    WordBoard& attack_table = m_attack_table[color];
+auto Position::generate_attacks_for(Color color, PieceId piece_id) -> void {
+    const auto [square, piece_type] = info_of(piece_id, color);
 
-    i8 o_file = square.file();
-
-    Direction push_direction = Direction::pawn_direction(color);
-    Square    ahead          = square + push_direction;
-    i8        ahead_rank     = ahead.rank();
-
-    i8 left_file = static_cast<i8>(o_file - 1);
-    if (is_valid_coordinate(left_file)) {
-        attack_table[{left_file, ahead_rank}].set_id(piece_id);
+    if (piece_type == PieceType::kPawn && color == Color::kWhite) {
+        generate_leaper(color, piece_id, square, x88::nw_diag);
+        generate_leaper(color, piece_id, square, x88::ne_diag);
+        return;
     }
 
-    i8 right_file = static_cast<i8>(o_file + 1);
-    if (is_valid_coordinate(right_file)) {
-        attack_table[{right_file, ahead_rank}].set_id(piece_id);
+    if (piece_type == PieceType::kPawn && color == Color::kBlack) {
+        generate_leaper(color, piece_id, square, x88::sw_diag);
+        generate_leaper(color, piece_id, square, x88::se_diag);
+        return;
+    }
+
+    if (piece_type == PieceType::kKnight) {
+        generate_leaper(color, piece_id, square, x88::nne_horsie);
+        generate_leaper(color, piece_id, square, x88::nee_horsie);
+        generate_leaper(color, piece_id, square, x88::see_horsie);
+        generate_leaper(color, piece_id, square, x88::sse_horsie);
+        generate_leaper(color, piece_id, square, x88::ssw_horsie);
+        generate_leaper(color, piece_id, square, x88::sww_horsie);
+        generate_leaper(color, piece_id, square, x88::nww_horsie);
+        generate_leaper(color, piece_id, square, x88::nnw_horsie);
+        return;
+    }
+
+
+    if (piece_type.is_orth()) {
+        generate_slider(color, piece_id, square, x88::n_orth);
+        generate_slider(color, piece_id, square, x88::e_orth);
+        generate_slider(color, piece_id, square, x88::s_orth);
+        generate_slider(color, piece_id, square, x88::w_orth);
+
+        if (piece_type == PieceType::kBishop) {
+            return;
+        }
+    }
+
+    if (piece_type.is_diag()) {
+        generate_slider(color, piece_id, square, x88::ne_diag);
+        generate_slider(color, piece_id, square, x88::se_diag);
+        generate_slider(color, piece_id, square, x88::sw_diag);
+        generate_slider(color, piece_id, square, x88::nw_diag);
+
+        if (piece_type == PieceType::kRook) {
+            return;
+        }
+    }
+
+    if (piece_type == PieceType::kKing) {
+        generate_leaper(color, piece_id, square, x88::n_orth);
+        generate_leaper(color, piece_id, square, x88::e_orth);
+        generate_leaper(color, piece_id, square, x88::s_orth);
+        generate_leaper(color, piece_id, square, x88::w_orth);
+        generate_leaper(color, piece_id, square, x88::ne_diag);
+        generate_leaper(color, piece_id, square, x88::se_diag);
+        generate_leaper(color, piece_id, square, x88::sw_diag);
+        generate_leaper(color, piece_id, square, x88::nw_diag);
+        return;
     }
 }
 
-template<>
-auto Position::update_attack_table_for<PieceType::kKnight>(Color   color,
-                                                           Square  square,
-                                                           PieceId piece_id) -> void {
-    constexpr std::array<std::pair<i8, i8>, 8> kOffsets = {{
-      {1, 2},    //
-      {2, 1},    //
-      {-1, 2},   //
-      {-2, 1},   //
-      {1, -2},   //
-      {2, -1},   //
-      {-1, -2},  //
-      {-2, -1},  //
-    }};
+auto Position::generate_slider(Color color, PieceId piece_id, Square src, i32 direction) -> void {
+    i32 x88_coordinate = x88::to_x88(src);
 
-    i8 file = square.file(), rank = square.rank();
+    while (true) {
+        x88_coordinate += direction;
 
-    WordBoard& attack_table = m_attack_table[color];
-
-    for (auto [file_offset, rank_offset] : kOffsets) {
-        i8 new_file = static_cast<i8>(file + file_offset),
-           new_rank = static_cast<i8>(rank + rank_offset);
-
-        if (!is_valid_coordinate(new_file) || !is_valid_coordinate(new_rank)) {
-            continue;
+        if ((x88_coordinate & 0x88) != 0) {
+            break;
         }
 
-        Square attacking_square{new_file, new_rank};
-        attack_table[attacking_square].set_id(piece_id);
-    }
-}
+        Square coordinate = x88::from_x88(x88_coordinate);
+        m_attack_table[color][coordinate].set_id(piece_id);
 
-template<>
-auto Position::update_attack_table_for<PieceType::kBishop>(Color   color,
-                                                           Square  square,
-                                                           PieceId piece_id) -> void {
-    update_diagonal_sliders_for(color, square, piece_id);
-}
-
-template<>
-auto Position::update_attack_table_for<PieceType::kRook>(Color   color,
-                                                         Square  square,
-                                                         PieceId piece_id) -> void {
-    update_orthogonal_sliders_for(color, square, piece_id);
-}
-
-template<>
-auto Position::update_attack_table_for<PieceType::kQueen>(Color   color,
-                                                          Square  square,
-                                                          PieceId piece_id) -> void {
-    update_diagonal_sliders_for(color, square, piece_id);
-    update_orthogonal_sliders_for(color, square, piece_id);
-}
-
-template<>
-auto Position::update_attack_table_for<PieceType::kKing>(Color color, Square square, PieceId)
-  -> void {
-    constexpr std::array<std::pair<i8, i8>, 8> kOffsets = {{
-      {1, 1},    //
-      {1, -1},   //
-      {-1, -1},  //
-      {-1, 1},   //
-      {1, 0},    //
-      {-1, 0},   //
-      {0, 1},    //
-      {0, -1}    //
-    }};
-
-    WordBoard& attack_table = m_attack_table[color];
-    i8         o_file = square.file(), o_rank = square.rank();
-
-    for (auto [file_offset, rank_offset] : kOffsets) {
-        i8 file = static_cast<i8>(o_file + file_offset),
-           rank = static_cast<i8>(o_rank + rank_offset);
-
-        if (!is_valid_coordinate(file) || !is_valid_coordinate(rank)) {
-            continue;
-        }
-
-        Square target{file, rank};
-        attack_table[target].set_id(PieceId::king());
-    }
-}
-
-auto Position::update_attack_table(Color     color,
-                                   Square    square,
-                                   PieceType piece_type,
-                                   PieceId   piece_id) -> void {
-    switch (piece_type) {
-    case PieceType::kPawn:
-        update_attack_table_for<PieceType::kPawn>(color, square, piece_id);
-        break;
-    case PieceType::kKnight:
-        update_attack_table_for<PieceType::kKnight>(color, square, piece_id);
-        break;
-    case PieceType::kBishop:
-        update_attack_table_for<PieceType::kBishop>(color, square, piece_id);
-        break;
-    case PieceType::kRook:
-        update_attack_table_for<PieceType::kRook>(color, square, piece_id);
-        break;
-    case PieceType::kQueen:
-        update_attack_table_for<PieceType::kQueen>(color, square, piece_id);
-        break;
-    case PieceType::kKing:
-        update_attack_table_for<PieceType::kKing>(color, square, piece_id);
-        break;
-    default:
-        break;
-    }
-}
-
-auto Position::update_diagonal_sliders_for(Color color, Square square, PieceId piece_id) -> void {
-    constexpr std::array<std::pair<i8, i8>, 4> kOffsets = {{
-      {1, 1},    //
-      {1, -1},   //
-      {-1, -1},  //
-      {-1, 1}    //
-    }};
-
-    WordBoard& attack_table = m_attack_table[color];
-    i8         o_file = square.file(), o_rank = square.rank();
-
-    for (auto [file_offset, rank_offset] : kOffsets) {
-        i8 file = static_cast<i8>(o_file + file_offset),
-           rank = static_cast<i8>(o_rank + rank_offset);
-
-        while (is_valid_coordinate(file) && is_valid_coordinate(rank)) {
-            Square at{file, rank};
-
-            attack_table[at].set_id(piece_id);
-
-            if (!piece_at(at).empty()) {
-                break;
-            }
-
-            file = static_cast<i8>(file + file_offset);
-            rank = static_cast<i8>(rank + rank_offset);
+        if (piece_at(coordinate).is_some()) {
+            break;
         }
     }
 }
 
-auto Position::update_orthogonal_sliders_for(Color color, Square square, PieceId piece_id) -> void {
-    constexpr std::array<std::pair<i8, i8>, 4> kOffsets = {{
-      {1, 0},   //
-      {-1, 0},  //
-      {0, 1},   //
-      {0, -1}   //
-    }};
+auto Position::generate_leaper(Color color, PieceId piece_id, Square src, i32 direction) -> void {
+    const i32 x88_coordinate = x88::to_x88(src) + direction;
 
-    WordBoard& attack_table = m_attack_table[color];
-    i8         o_file = square.file(), o_rank = square.rank();
-
-    for (auto [file_offset, rank_offset] : kOffsets) {
-        i8 file = static_cast<i8>(o_file + file_offset),
-           rank = static_cast<i8>(o_rank + rank_offset);
-
-        while (is_valid_coordinate(file) && is_valid_coordinate(rank)) {
-            Square at{file, rank};
-
-            attack_table[at].set_id(piece_id);
-
-            if (!piece_at(at).empty()) {
-                break;
-            }
-
-            file = static_cast<i8>(file + file_offset);
-            rank = static_cast<i8>(rank + rank_offset);
-        }
+    if ((x88_coordinate & 0x88) != 0) {
+        return;
     }
+
+    Square coordinate = x88::from_x88(x88_coordinate);
+    m_attack_table[color][coordinate].set_id(piece_id);
 }
+
 
 auto Position::calculate_pin_rays() -> void {
     for (PieceId rook_id : m_piece_list[~m_side_to_move].piece_type(PieceType::kRook)) {

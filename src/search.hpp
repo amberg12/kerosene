@@ -90,6 +90,8 @@ private:
 
     time_manager m_time_manager;
     Move         m_best_move;
+
+    bool m_stopped{};
 };
 
 }  // namespace kerosene

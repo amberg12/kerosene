@@ -26,7 +26,8 @@
 
 namespace kerosene {
 namespace {
-constexpr i32 kMaxDepth = 255;
+constexpr i32 max_depth = 255;
+constexpr u64 node_tm_check_interval = 4096;
 }
 
 auto searcher::set_position(const Position& root_position, const RepetitionTable& repetition_table)
@@ -36,6 +37,7 @@ auto searcher::set_position(const Position& root_position, const RepetitionTable
 }
 
 auto searcher::begin_search(time_parameters time_parameters) -> void {
+    m_stopped    = false;
     m_nodes      = 0;
     m_node_table = multi_array_t<kerosene::nodes, Square::kNb, Square::kNb>{};
 
@@ -61,7 +63,7 @@ auto searcher::iterative_deepening() -> void {
     MoveList emergency_moves = generate_legal_moves(m_root_position);
     m_best_move              = emergency_moves.front();
 
-    for (i32 depth = 1; depth < kMaxDepth; ++depth) {
+    for (i32 depth = 1; depth < max_depth; ++depth) {
         Score alpha = kNegativeInf;
         Score beta  = kPositiveInf;
         Score delta = 25;
@@ -85,12 +87,12 @@ auto searcher::iterative_deepening() -> void {
 
             delta *= 2;
 
-            if (m_time_manager.hard_stop()) {
+            if (m_stopped) {
                 break;
             }
         }
 
-        if (m_time_manager.hard_stop()) {
+        if (m_stopped) {
             break;
         }
 
@@ -119,7 +121,8 @@ template<typename Node>
 auto searcher::quiesce(const Position& position, Score alpha, Score beta, i32 ply) -> Score {
     m_nodes++;
 
-    if (m_time_manager.hard_stop()) {
+    if (m_stopped || (m_nodes % node_tm_check_interval == 0 && m_time_manager.hard_stop())) {
+        m_stopped = true;
         return 0;
     }
 
@@ -156,7 +159,7 @@ auto searcher::quiesce(const Position& position, Score alpha, Score beta, i32 pl
 
         m_repetition_table.pop();
 
-        if (m_time_manager.hard_stop()) {
+        if (m_stopped) {
             return 0;
         }
 
@@ -185,7 +188,8 @@ auto searcher::search(const Position& position, i32 depth, Score alpha, Score be
   -> Score {
     m_nodes++;
 
-    if (m_time_manager.hard_stop()) {
+    if (m_stopped || (m_nodes % node_tm_check_interval == 0 && m_time_manager.hard_stop())) {
+        m_stopped = true;
         return 0;
     }
 
@@ -289,7 +293,7 @@ auto searcher::search(const Position& position, i32 depth, Score alpha, Score be
             score = -search<pv_node>(child_position, new_depth, -beta, -alpha, ply + 1);
         }
 
-        if (m_time_manager.hard_stop()) {
+        if (m_stopped) {
             return 0;
         }
 

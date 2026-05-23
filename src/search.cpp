@@ -26,7 +26,7 @@
 
 namespace kerosene {
 namespace {
-constexpr i32 max_depth = 255;
+constexpr i32 max_depth              = 255;
 constexpr u64 node_tm_check_interval = 4096;
 }
 
@@ -101,8 +101,9 @@ auto searcher::iterative_deepening() -> void {
 
         // Only touch the soft limit above depth 5 to avoid instability found in low depths.
         if (depth >= 5) {
-            const f64 node_ratio = static_cast<f64>(m_node_table[m_best_move.src()][m_best_move.dst()])
-                             / static_cast<f64>(m_nodes);
+            const f64 node_ratio =
+              static_cast<f64>(m_node_table[m_best_move.src()][m_best_move.dst()])
+              / static_cast<f64>(m_nodes);
             m_time_manager.recompute_soft_limit(node_ratio);
         }
 
@@ -126,7 +127,7 @@ auto searcher::quiesce(const Position& position, Score alpha, Score beta, i32 pl
         return 0;
     }
 
-    if (m_repetition_table.is_repetition(position)) {
+    if (m_repetition_table.is_repetition(position) || position.fifty_move_rule()) {
         return 0;
     }
 
@@ -194,7 +195,8 @@ auto searcher::search(const Position& position, i32 depth, Score alpha, Score be
     }
 
     // We don't want to do draw detection at root if we have already repeated once.
-    if (!Node::is_root && m_repetition_table.is_repetition(position)) {
+    if (!Node::is_root
+        && (m_repetition_table.is_repetition(position) || position.fifty_move_rule())) {
         return 0;
     }
 

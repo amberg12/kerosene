@@ -23,6 +23,7 @@
 #include "repetition_table.hpp"
 #include "util/defer.hpp"
 #include "util/math.hpp"
+#include <ranges>
 
 namespace kerosene {
 namespace {
@@ -54,16 +55,30 @@ auto searcher::new_game() -> void {
 auto searcher::iterative_deepening() -> void {
     Score last_score = kScoreNone;
     i32   last_depth = -1;
+    line  last_pv{};
 
     const auto print_info_line = [&] {
-        std::string score_string = is_mate(last_score) ? "mate" : "cp";
-        std::println("info depth {} score {} {}", last_depth, score_string, last_score);
+        const std::string score_string = is_mate(last_score) ? "mate" : "cp";
+        const std::string pv_string = [&] {
+            namespace rv = std::views;
+            std::string out;
+            for (const Move move : last_pv | rv::take(last_pv.size() - 1)) {
+                out += move.to_string() + " ";
+            }
+
+            out += last_pv.back().to_string();
+
+            return out;
+        }();
+
+        std::println("info depth {} score {} {} pv {}", last_depth, score_string, last_score, pv_string);
     };
 
     MoveList emergency_moves = generate_legal_moves(m_root_position);
     m_best_move              = emergency_moves.front();
 
     for (i32 depth = 1; depth < max_depth; ++depth) {
+        line  pv{};
         Score alpha = kNegativeInf;
         Score beta  = kPositiveInf;
         Score delta = 25;
@@ -75,7 +90,7 @@ auto searcher::iterative_deepening() -> void {
         }
 
         while (true) {
-            score = search<root_node>(m_root_position, depth, alpha, beta, 0);
+            score = search<root_node>(m_root_position, depth, alpha, beta, 0, pv);
 
             if (score <= alpha) {
                 alpha = std::max(alpha - delta, kNegativeInf);
@@ -98,11 +113,14 @@ auto searcher::iterative_deepening() -> void {
 
         last_score = score;
         last_depth = depth;
+        last_pv    = pv;
+
+        Move best_move = last_pv[0];
 
         // Only touch the soft limit above depth 5 to avoid instability found in low depths.
         if (depth >= 5) {
             const f64 node_ratio =
-              static_cast<f64>(m_node_table[m_best_move.src()][m_best_move.dst()])
+              static_cast<f64>(m_node_table[best_move.src()][best_move.dst()])
               / static_cast<f64>(m_nodes);
             m_time_manager.recompute_soft_limit(node_ratio);
         }
@@ -115,11 +133,12 @@ auto searcher::iterative_deepening() -> void {
     }
 
     print_info_line();
-    std::println("bestmove {}", m_best_move.to_string());
+    std::println("bestmove {}", last_pv[0].to_string());
 }
 
 template<typename Node>
-auto searcher::quiesce(const Position& position, Score alpha, Score beta, i32 ply) -> Score {
+auto searcher::quiesce(const Position& position, Score alpha, Score beta, i32 ply, line& pv)
+  -> Score {
     m_nodes++;
 
     if (m_stopped || (m_nodes % node_tm_check_interval == 0 && m_time_manager.hard_stop())) {
@@ -156,7 +175,9 @@ auto searcher::quiesce(const Position& position, Score alpha, Score beta, i32 pl
         Position child_position{position, move};
         m_repetition_table.push(child_position);
 
-        Score score = -quiesce<non_pv_node>(child_position, -beta, -alpha, ply + 1);
+        line child_pv{};
+
+        Score score = -quiesce<non_pv_node>(child_position, -beta, -alpha, ply + 1, child_pv);
 
         m_repetition_table.pop();
 
@@ -169,6 +190,15 @@ auto searcher::quiesce(const Position& position, Score alpha, Score beta, i32 pl
 
             if (score > alpha) {
                 alpha = score;
+
+                if constexpr (Node::is_pv) {
+                    pv.clear();
+                    pv.emplace_back(move);
+
+                    for (const Move pv_move : child_pv) {
+                        pv.emplace_back(pv_move);
+                    }
+                }
             }
         }
 
@@ -185,8 +215,8 @@ auto searcher::quiesce(const Position& position, Score alpha, Score beta, i32 pl
 }
 
 template<typename Node>
-auto searcher::search(const Position& position, i32 depth, Score alpha, Score beta, i32 ply)
-  -> Score {
+auto searcher::search(
+  const Position& position, i32 depth, Score alpha, Score beta, i32 ply, line& pv) -> Score {
     m_nodes++;
 
     if (m_stopped || (m_nodes % node_tm_check_interval == 0 && m_time_manager.hard_stop())) {
@@ -201,7 +231,7 @@ auto searcher::search(const Position& position, i32 depth, Score alpha, Score be
     }
 
     if (depth <= 0) {
-        return quiesce<typename Node::next>(position, alpha, beta, ply);
+        return quiesce<typename Node::next>(position, alpha, beta, ply, pv);
     }
 
     ss_item& ss                  = m_ss.at(ply);
@@ -274,25 +304,28 @@ auto searcher::search(const Position& position, i32 depth, Score alpha, Score be
 
         Score score{};
 
-        i32 new_depth = depth - 1;
+        i32  new_depth = depth - 1;
+        line child_pv{};
 
         if (depth >= 3 && move_count >= 3) {
             i32 r = 2 + log2(depth) * log2(move_count) / 4;
 
             const i32 lmr_depth = std::clamp(new_depth - r, 0, new_depth);
 
-            score = -search<non_pv_node>(child_position, lmr_depth, -alpha - 1, -alpha, ply + 1);
+            score = -search<non_pv_node>(child_position, lmr_depth, -alpha - 1, -alpha, ply + 1,
+                                         child_pv);
 
             if (score > alpha && lmr_depth < new_depth) {
-                score =
-                  -search<non_pv_node>(child_position, new_depth, -alpha - 1, -alpha, ply + 1);
+                score = -search<non_pv_node>(child_position, new_depth, -alpha - 1, -alpha, ply + 1,
+                                             child_pv);
             }
         } else if (!Node::is_pv || move_count > 1) {
-            score = -search<non_pv_node>(child_position, new_depth, -alpha - 1, -alpha, ply + 1);
+            score = -search<non_pv_node>(child_position, new_depth, -alpha - 1, -alpha, ply + 1,
+                                         child_pv);
         }
 
         if (Node::is_pv && (move_count == 1 || score > alpha)) {
-            score = -search<pv_node>(child_position, new_depth, -beta, -alpha, ply + 1);
+            score = -search<pv_node>(child_position, new_depth, -beta, -alpha, ply + 1, child_pv);
         }
 
         if (m_stopped) {
@@ -312,7 +345,16 @@ auto searcher::search(const Position& position, i32 depth, Score alpha, Score be
                 best_move = move;
 
                 if constexpr (Node::is_root) {
-                    m_best_move = best_move;
+                    m_best_move = move;
+                }
+
+                if constexpr (Node::is_pv) {
+                    pv.clear();
+                    pv.emplace_back(move);
+
+                    for (const Move pv_move : child_pv) {
+                        pv.emplace_back(pv_move);
+                    }
                 }
 
                 alpha = score;

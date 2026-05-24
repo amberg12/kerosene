@@ -24,11 +24,13 @@
 #include "search_stack.hpp"
 #include "time_manager.hpp"
 #include "transposition_table.hpp"
+#include "util/inplace_vector.hpp"
 #include "util/multi_array.hpp"
 
 namespace kerosene {
 
 using nodes = u64;
+using line = inplace_vector<Move, 512>;
 
 class searcher {
 public:
@@ -73,10 +75,10 @@ private:
     auto iterative_deepening() -> void;
 
     template<typename Node>
-    auto quiesce(const Position& position, Score alpha, Score beta, i32 ply) -> Score;
+    auto quiesce(const Position& position, Score alpha, Score beta, i32 ply, line& pv_line) -> Score;
 
     template<typename N>
-    auto search(const Position& position, i32 depth, Score alpha, Score beta, i32 ply) -> Score;
+    auto search(const Position& position, i32 depth, Score alpha, Score beta, i32 ply, line& pv_line) -> Score;
 
     nodes m_nodes{};
 
